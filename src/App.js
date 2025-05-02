@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // 🔹 라우터 추가
+import { Navigate, Routes, Route } from 'react-router-dom';
 
 import './assets/css/reset.css';
 import './assets/css/style.css';
@@ -13,8 +13,11 @@ import ImgText from './components/ImgText';
 import Card from './components/Card';
 import Banner from './components/Banner';
 import Text from './components/Text';
+import LoginPage from './pages/Login';
 
 import Signup from './pages/Signup'; // 🔹 소문자 파일 이름 기준 import
+
+import { useAuth } from './context/AuthContext';
 
 const HomePage = () => (
   <>
@@ -32,13 +35,18 @@ const HomePage = () => (
 );
 
 const App = () => {
+  const { user } = useAuth();
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/signup" element={<Signup />} /> {/* 🔹 회원가입 경로 */}
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} /> {/* 로그인 경로*/}
+      <Route
+        path="*"
+        element={<Navigate to={user ? '/' : '/login'} replace />}
+        /> {/* 🔹 로그인 상태에 따라 어디로 이동할지 경로*/}
+      <Route path="/signup" element={<Signup />} /> {/* 🔹 회원가입 경로 */}
+    </Routes>
   );
 };
 
