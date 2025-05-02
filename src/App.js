@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // 🔹 라우터 추가
+import { Navigate, Routes, Route } from 'react-router-dom';
 
 import './assets/css/reset.css';
 import './assets/css/style.css';
@@ -38,17 +38,15 @@ const App = () => {
   const { user } = useAuth();
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} /> {/* 로그인 경로*/}
-        <Route
-          path="*"
-          element={<Navigate to={user ? '/' : '/login'} replace />}
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} /> {/* 로그인 경로*/}
+      <Route
+        path="*"
+        element={<Navigate to={user ? '/' : '/login'} replace />}
         /> {/* 🔹 로그인 상태에 따라 어디로 이동할지 경로*/}
-        <Route path="/signup" element={<Signup />} /> {/* 🔹 회원가입 경로 */}
-      </Routes>
-    </Router>
+      <Route path="/signup" element={<Signup />} /> {/* 🔹 회원가입 경로 */}
+    </Routes>
   );
 };
 
