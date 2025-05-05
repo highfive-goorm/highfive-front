@@ -3,16 +3,13 @@ import { Navigate, Routes, Route } from 'react-router-dom';
 
 import './assets/css/reset.css';
 import './assets/css/style.css';
-
+import SearchBar from './components/SearchBar'
 import Header from './components/Header';
 import Main from './components/Main';
 import Footer from './components/Footer';
 import Slider from './components/Slider';
 import Image from './components/Image';
-import ImgText from './components/ImgText';
 import Card from './components/Card';
-import Banner from './components/Banner';
-import Text from './components/Text';
 import LoginPage from './pages/Login';
 
 import Signup from './pages/Signup'; // 🔹 소문자 파일 이름 기준 import
@@ -22,13 +19,11 @@ import { useAuth } from './context/AuthContext';
 const HomePage = () => (
   <>
     <Header element="nexon" />
+    <SearchBar />
     <Main>
-      <Slider element="nexon" />
-      <Image element="section nexon" title="포트폴리오가 실력이다." />
-      <ImgText element="section nexon gray" title="이미지 텍스트 유형" />
-      <Card element="section nexon" title="웹스토리보이 강의" />
-      <Banner element="nexon" title="배너 영역" />
-      <Text element="section nexon" title="텍스트 유형01" />
+    <Card element="section nexon" title="추천 서비스" />
+    <Slider element="nexon" title="광고 배너"/>
+    <Image element="section nexon" title="상품 리스트" />
     </Main>
     <Footer element="nexon section gray" />
   </>
