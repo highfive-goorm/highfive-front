@@ -14,6 +14,9 @@ import LoginPage from './pages/Login';
 
 import Signup from './pages/Signup'; // 🔹 소문자 파일 이름 기준 import
 
+import Product from './pages/Product'; //  상세 페이지
+
+
 import { useAuth } from './context/AuthContext';
 
 const HomePage = () => (
@@ -41,6 +44,7 @@ const App = () => {
           element={<Navigate to={user ? '/' : '/login'} replace />}
           /> {/* 🔹 로그인 상태에 따라 어디로 이동할지 경로*/}
         <Route path="/signup" element={<Signup />} /> {/* 🔹 회원가입 경로 */}
+        <Route path="/product/:id" element={<Product />} /> {/* ✅ 상세 페이지 */}
       </Routes>
       <Footer element="nexon section gray" />
     </>
