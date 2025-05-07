@@ -11,12 +11,9 @@ import Slider from './components/Slider';
 import Image from './components/Image';
 import Card from './components/Card';
 import LoginPage from './pages/Login';
-
 import Signup from './pages/Signup'; // 🔹 소문자 파일 이름 기준 import
-
 import Product from './pages/Product'; //  상세 페이지
-
-
+import Search from './pages/Search' // 검색 페이지
 import { useAuth } from './context/AuthContext';
 
 const HomePage = () => (
@@ -39,6 +36,7 @@ const App = () => {
         <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} /> {/* 로그인 경로*/}
+        <Route path="/search" element={<Search />} /> {/* 검색 페이지 경로*/}
         <Route
           path="*"
           element={<Navigate to={user ? '/' : '/login'} replace />}
