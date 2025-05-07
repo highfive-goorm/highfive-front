@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { jwtDecode } from 'jwt-decode';
 import { useAuth } from "../context/AuthContext";
-import { loginRequest } from "../api/auth";
+import { loginRequest } from "../lib/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -20,17 +19,14 @@ export default function LoginPage() {
 
     try {
       // 로그인 API 호출
-      const { access, refresh } = await loginRequest(account, password);
+      const { token, user } = await loginRequest(account, password);
 
-      // 로컬 스토리지에 토큰 저장
-      localStorage.setItem("accessToken", access);
-      localStorage.setItem("refreshToken", refresh);
+      // 로컬 스토리지에 토큰·계정 저장
+      localStorage.setItem("token", token);
+      localStorage.setItem("account", account);
 
-      // decode 해서 account, name, role 추출
-      const { account: accFromToken, name, role } = jwtDecode(access);
-
-      // Context에 저장 (이제 user.account 로 사용)
-      login({ account: accFromToken, name, role });
+      // Context에 유저 정보 저장
+      login(user);
 
       // 메인 페이지로 이동
       navigate("/");
