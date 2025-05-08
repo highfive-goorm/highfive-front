@@ -1,54 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+//import React, { useState, useEffect } from 'react';    // 실제 서버와 연결할 때 사용
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import products from '../api/products.json';
 
 function Product() {
-  const { id } = useParams(); // URL에서 상품 ID 추출
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth(); // 로그인 상태 확인
+  const { user } = useAuth();
 
-  const [product, setProduct] = useState(null); // 상품 정보
-  const [quantity, setQuantity] = useState(1); // 수량
-  const [showAlert, setShowAlert] = useState(false); // 장바구니 alert
+  const product = products.find((p) => p.id.toString() === id) || {};
+  // const [product, setProduct] = useState(null);    // 실제 서버와 연결할 때 사용
 
-  // 더미 상품 데이터 가져오기 (API 대체용)
-  useEffect(() => {
-    const fetchData = async () => {
-      const dummyProduct = {
-        id,
-        gender: '남성',
-        page_view_total: 1200,
-        purchase_total: 300,
-        brand: '트릴리온',
-        brand_likes: 210000,
-        major_category: '상의',
-        sub_category: '긴소매 티셔츠',
-        name: '얇플 링 스냅 헨리넥 롱 슬리브 [블랙]',
-        price: 38000,
-        discount: 0.22,
-        likes: 8100,
-        img_url: 'https://image.msscdn.net/thumbnails/images/goods_img/20220210/2353071/2353071_2_big.jpg?w=1200',
-      };
-      setProduct(dummyProduct);
-    };
+  // useEffect(() => {
+  //   axios.get(`/api/product/${id}`)
+  //     .then(res => setProduct(res.data))
+  //     .catch(err => console.error('상품 조회 실패', err));
+  // }, [id]);
 
-    fetchData();
-  }, [id]);
 
-  if (!product) return <p>로딩 중...</p>;
+  const [quantity, setQuantity] = useState(1);
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(product.product_likes ?? 0);
+  const [brandLiked, setBrandLiked] = useState(false);
+  const [brandLikeCount, setBrandLikeCount] = useState(product.brand_likes ?? 0);
 
-  // 안전한 값 처리
+  if (!product.id) return <p>상품을 찾을 수 없습니다.</p>;
+
   const price = product.price ?? 0;
   const discount = product.discount ?? 0;
-  const brandLikes = product.brand_likes ?? 0;
-  const likes = product.likes ?? 0;
+  const discountedPrice = Math.floor(price * ((100 - discount) / 100)).toLocaleString();
+  const originalPrice = (product.ori_price ?? price).toLocaleString();
+  const discountPercent = `${discount}%`;
 
-  const discountedPrice = (price * (1 - discount)).toLocaleString();
-  const originalPrice = price.toLocaleString();
-  const discountPercent = `${Math.round(discount * 100)}%`;
+  const toggleLike = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
 
-  // 장바구니 클릭 시
+    const newState = !liked;
+    setLiked(newState);
+    setLikeCount((prev) => prev + (newState ? 1 : -1));
+
+    try {
+      await axios.post(`/api/product/${product.id}/like`, {
+        user_id: user.account,
+        product_id: product.id,
+        liked: newState,
+      });
+    } catch (err) {
+      console.error('상품 좋아요 실패', err);
+    }
+  };
+
+  const toggleBrandLike = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    const newState = !brandLiked;
+    setBrandLiked(newState);
+    setBrandLikeCount((prev) => prev + (newState ? 1 : -1));
+
+    try {
+      await axios.post(`/api/brand-like`, {
+        user_id: user.account,
+        brand: product.brand,
+        liked: newState,
+      });
+    } catch (err) {
+      console.error('브랜드 좋아요 실패', err);
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!user) {
       alert('로그인이 필요합니다.');
@@ -57,53 +86,53 @@ function Product() {
     }
 
     try {
-      await axios.post('/api/cart', {
+      await axios.post('https://68144d36225ff1af162871b7.mockapi.io/cart', {
         user_id: user.account,
         product_id: product.id,
         quantity,
       });
-      console.log(user.account, product.id, quantity);
-      setShowAlert(true);
-    } catch (error) {
-      alert('장바구니 담기에 실패했습니다.');
+
+      const confirmed = window.confirm('장바구니 담기 완료.\n장바구니로 이동하시겠습니까?');
+      if (confirmed) {
+        navigate('/cart');
+      }
+    } catch (err) {
+      alert('장바구니 추가 실패');
     }
   };
 
   return (
-    <div className="product-detail-page" style={{ display: 'flex', padding: '2rem' }}>
-      {/* 좌측: 이미지 및 간단 정보 */}
+    <div style={{ display: 'flex', padding: '2rem' }}>
+      {/* 좌측 이미지 */}
       <div style={{ flex: 1 }}>
         <img src={product.img_url} alt={product.name} width="100%" />
-        <p>성별: {product.gender}</p>
-        <p>조회수: {product.page_view_total}</p>
-        <p>누적 판매 수: {product.purchase_total}</p>
       </div>
 
-      {/* 우측: 상세 정보 */}
+      {/* 우측 상세 */}
       <div style={{ flex: 1, marginLeft: '3rem' }}>
-        {/* 브랜드명 + 좋아요 */}
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div>
           <h3 style={{ display: 'inline-block', marginRight: '0.5rem' }}>{product.brand}</h3>
-          <span style={{ fontSize: '1rem', color: 'gray' }}>
-            ❤️ {brandLikes.toLocaleString()}
-          </span>
+          <button
+            onClick={toggleBrandLike}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'gray' }}
+          >
+            {brandLiked ? '❤️' : '🤍'} {brandLikeCount.toLocaleString()}
+          </button>
         </div>
 
-        {/* 카테고리 & 상품명 */}
-        <p style={{ color: 'gray', margin: '0.5rem 0' }}>
-          {product.major_category} &gt; {product.sub_category}
-        </p>
-        <h2 style={{ fontWeight: 'bold' }}>{product.name}</h2>
+        <p style={{ color: 'gray' }}>{product.major_category} &gt; {product.sub_category}</p>
+        <h2>{product.name}</h2>
 
-        {/* 가격 정보 */}
-        <div style={{ marginTop: '1rem' }}>
+        <p>성별: {product.gender}</p>
+        <p>조회수: {product.page_view_total} | 판매 수: {product.purchase_total}</p>
+
+        <div>
           <p style={{ textDecoration: 'line-through', color: 'gray' }}>{originalPrice}원</p>
           <p style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#ff003e' }}>
             {discountPercent} {discountedPrice}원
           </p>
         </div>
 
-        {/* 수량 선택 */}
         <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.5rem' }}>
           <span style={{ marginRight: '1rem' }}>수량</span>
           <button onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
@@ -111,21 +140,39 @@ function Product() {
           <button onClick={() => setQuantity(quantity + 1)}>+</button>
         </div>
 
-        {/* 좋아요 + 장바구니 + 구매 */}
         <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem', gap: '1rem' }}>
-          <div>❤️ {likes.toLocaleString()}</div>
-          <button onClick={handleAddToCart} style={{ padding: '0.5rem 1rem' }}>장바구니</button>
-          <button onClick={() => navigate('/checkout')} style={{ padding: '0.5rem 1rem', backgroundColor: 'black', color: 'white' }}>구매하기</button>
-        </div>
+          <button onClick={toggleLike}>
+            {liked ? '❤️' : '🤍'} {likeCount.toLocaleString()}
+          </button>
 
-        {/* 장바구니 alert */}
-        {showAlert && (
-          <div className="custom-alert" style={{ marginTop: '1rem' }}>
-            <p>장바구니에 담았습니다.</p>
-            <button onClick={() => navigate('/cart')}>장바구니 이동</button>
-            <button onClick={() => setShowAlert(false)}>계속 쇼핑</button>
-          </div>
-        )}
+          <button
+            onClick={handleAddToCart}
+            style={{
+              padding: '0.75rem 1.5rem',
+              border: '1px solid #ccc',
+              backgroundColor: 'white',
+              color: 'black',
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            장바구니
+          </button>
+
+          <button
+            onClick={() => navigate('/checkout')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              border: 'none',
+              backgroundColor: 'black',
+              color: 'white',
+              borderRadius: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            구매하기
+          </button>
+        </div>
       </div>
     </div>
   );
