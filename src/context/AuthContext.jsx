@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getUserInfo } from '../lib/api';
-import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext({
   user: null,
@@ -9,7 +8,6 @@ const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  const navigate = useNavigate();
   const [user, setUser] = useState(null);
 
   const login = (userData) => {
@@ -17,24 +15,23 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     setUser(null);
-    navigate('/login');
+    window.location.replace('/');
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const account = localStorage.getItem('account');
-    if (token && account) {
-      getUserInfo(account)
-        .then((userData) => {
-          setUser(userData);
-        })
-        .catch(() => {
-          logout();
-        });
+    const access = localStorage.getItem('accessToken');
+    if (access) {
+      try {
+        const { account, name, role } = jwtDecode(access);
+        setUser({ account, name, role });
+      } catch {
+        logout();
+      }
     }
-  }, []); // 최초 1회 실행
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
