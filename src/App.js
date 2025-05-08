@@ -19,6 +19,7 @@ import Search from './pages/Search'; // 검색 페이지
 import CartPage from './pages/Cart';
 
 import { useAuth } from './context/AuthContext';
+import ProductList from './components/ProductList';
 
 const HomePage = () => (
   <>
@@ -26,7 +27,8 @@ const HomePage = () => (
     <Main>
       <Card element="section nexon" title="추천 서비스" />
       <Slider element="nexon" title="광고 배너"/>
-      <Image element="section nexon" title="상품 리스트" />
+      {/*<Image element="section nexon" title="상품 리스트" />*/}
+      <ProductList element="section nexon" title="상품 리스트 테스트" /> {/* 추가 */}
     </Main>
   </>
 );
