@@ -8,7 +8,6 @@ import Header from './components/Header';
 import Main from './components/Main';
 import Footer from './components/Footer';
 import Slider from './components/Slider';
-import Image from './components/Image';
 import Card from './components/Card';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -27,7 +26,6 @@ const HomePage = () => (
     <Main>
       <Card element="section nexon" title="추천 서비스" />
       <Slider element="nexon" title="광고 배너"/>
-      {/*<Image element="section nexon" title="상품 리스트" />*/}
       <ProductList element="section nexon" title="상품 리스트 테스트" /> {/* 추가 */}
     </Main>
   </>
@@ -77,4 +75,3 @@ const App = () => {
 
 
 export default App;
-
