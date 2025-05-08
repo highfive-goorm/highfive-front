@@ -26,11 +26,11 @@ export default function LoginPage() {
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 
-      // decode 해서 account, name, role 추출
-      const { account: accFromToken, name, role } = jwtDecode(access);
+      // decode 해서 user_id 추출
+      const { user_id } = jwtDecode(access);
 
-      // Context에 저장 (이제 user.account 로 사용)
-      login({ account: accFromToken, name, role });
+      // Context에 user_id로 저장
+      login({ user_id: user_id });
 
       // 메인 페이지로 이동
       navigate("/");

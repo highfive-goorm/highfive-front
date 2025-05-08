@@ -21,7 +21,7 @@ export default function CartPage() {
           <div className="md:flex-1">
             {items.map(item => (
               <CartItem
-                key={item.productId}
+                key={item.product_id}
                 item={item}
                 onQuantityChange={changeQuantity}
                 onRemove={removeItem}

@@ -1,9 +1,12 @@
 import React from 'react';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export default function CartSummary({ items, loading }) {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const shipping = items.length ? 3000 : 0;
   const total = subtotal + shipping;
+
+  const { track } = useAnalytics();
 
   return (
     <div className="p-4 border rounded-lg bg-gray-50 mt-6">
@@ -20,6 +23,12 @@ export default function CartSummary({ items, loading }) {
         <span>₩{total.toLocaleString()}</span>
       </div>
       <button
+        onClick={() => 
+          track('checkout', {
+            product_ids: items.map(i => i.product_id),
+            total,
+          })
+        }
         disabled={loading || items.length === 0}
         className={`w-full py-2 rounded-lg text-white font-medium ${
           items.length
