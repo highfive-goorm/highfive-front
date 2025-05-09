@@ -3,7 +3,7 @@ import axios from 'axios';
 
 function Signup() {
   const [form, setForm] = useState({
-    account: '',
+    user_id: '',
     password: '',
     age: '',
     gender: '',
@@ -12,12 +12,9 @@ function Signup() {
 
   const [checkResult, setCheckResult] = useState(null); // 중복 검사 결과 상태
 
-  // 예시: 이미 사용 중인 계정 목록 (백엔드 없이 테스트용)
-  const existingAccounts = ['admin', 'test123', 'jang123'];
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-    if (e.target.name === 'account') {
+    if (e.target.name === 'user_id') {
       setCheckResult(null); // 계정명 변경되면 결과 초기화
     }
   };
@@ -45,16 +42,26 @@ function Signup() {
     }
   };
 
-  const checkDuplicate = () => {
-    if (!form.account) {
+  const checkDuplicate = async () => {
+    if (!form.user_id) {
       setCheckResult('아이디를 입력해주세요.');
       return;
     }
 
-    if (existingAccounts.includes(form.account)) {
-      setCheckResult('이미 사용 중인 아이디입니다.');
-    } else {
-      setCheckResult('사용 가능한 아이디입니다.');
+    try {
+      const response = await axios.get('https://68144d36225ff1af162871b7.mockapi.io/signup');
+      const users = response.data;
+
+      const isDuplicate = users.some(user => user.user_id === form.user_id);
+
+      if (isDuplicate) {
+        setCheckResult('이미 사용 중인 아이디입니다.');
+      } else {
+        setCheckResult('사용 가능한 아이디입니다.');
+      }
+    } catch (error) {
+      console.error("중복 확인 실패:", error);
+      setCheckResult('중복 확인 중 오류가 발생했습니다.');
     }
   };
 
@@ -68,8 +75,8 @@ function Signup() {
             <div className="flex gap-2">
               <input
                 type="text"
-                name="account"
-                value={form.account}
+                name="user_id"
+                value={form.user_id}
                 onChange={handleChange}
                 className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
               />
