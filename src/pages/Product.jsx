@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-//import React, { useState, useEffect } from 'react';    // 실제 서버와 연결할 때 사용
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
@@ -11,15 +10,6 @@ function Product() {
   const { user } = useAuth();
 
   const product = products.find((p) => p.id.toString() === id) || {};
-  // const [product, setProduct] = useState(null);    // 실제 서버와 연결할 때 사용
-
-  // useEffect(() => {
-  //   axios.get(`/api/product/${id}`)
-  //     .then(res => setProduct(res.data))
-  //     .catch(err => console.error('상품 조회 실패', err));
-  // }, [id]);
-
-
   const [quantity, setQuantity] = useState(1);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(product.product_likes ?? 0);
@@ -28,10 +18,11 @@ function Product() {
 
   if (!product.id) return <p>상품을 찾을 수 없습니다.</p>;
 
-  const price = product.price ?? 0;
+  const price = product.ori_price ?? product.price ?? 0;
   const discount = product.discount ?? 0;
-  const discountedPrice = Math.floor(price * ((100 - discount) / 100)).toLocaleString();
-  const originalPrice = (product.ori_price ?? price).toLocaleString();
+  const discountedPrice = Math.floor(price * ((100 - discount) / 100));
+  const displayDiscountedPrice = discountedPrice.toLocaleString();
+  const originalPrice = price.toLocaleString();
   const discountPercent = `${discount}%`;
 
   const toggleLike = async () => {
@@ -47,7 +38,7 @@ function Product() {
 
     try {
       await axios.post(`/api/product/${product.id}/like`, {
-        user_id: user.account,
+        user_id: user.user_id,
         product_id: product.id,
         liked: newState,
       });
@@ -69,7 +60,7 @@ function Product() {
 
     try {
       await axios.post(`/api/brand-like`, {
-        user_id: user.account,
+        user_id: user.user_id,
         brand: product.brand,
         liked: newState,
       });
@@ -87,7 +78,7 @@ function Product() {
 
     try {
       await axios.post('https://68144d36225ff1af162871b7.mockapi.io/cart', {
-        user_id: user.account,
+        user_id: user.user_id,
         product_id: product.id,
         quantity,
       });
@@ -99,6 +90,29 @@ function Product() {
     } catch (err) {
       alert('장바구니 추가 실패');
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    navigate('/checkout', {
+      state: {
+        items: [
+          {
+            product_id: product.id,
+            name: product.name,
+            price: discountedPrice,
+            ori_price: price,
+            img_url: product.img_url,
+            quantity,
+          }
+        ]
+      }
+    });
   };
 
   return (
@@ -129,7 +143,7 @@ function Product() {
         <div>
           <p style={{ textDecoration: 'line-through', color: 'gray' }}>{originalPrice}원</p>
           <p style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#ff003e' }}>
-            {discountPercent} {discountedPrice}원
+            {discountPercent} {displayDiscountedPrice}원
           </p>
         </div>
 
@@ -160,7 +174,7 @@ function Product() {
           </button>
 
           <button
-            onClick={() => navigate('/checkout')}
+            onClick={handleBuyNow}
             style={{
               padding: '0.75rem 1.5rem',
               border: 'none',
