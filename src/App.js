@@ -17,6 +17,10 @@ import Product from './pages/Product'; //  상세 페이지
 import Search from './pages/Search'; // 검색 페이지
 import CartPage from './pages/Cart';
 import Checkout from './pages/Checkout'; // 결제 페이지
+import MyPageHome    from './pages/mypage/Home';
+import ProfilePage   from './pages/mypage/Profile';
+import OrdersPage    from './pages/mypage/Orders';
+import FavoritesPage from './pages/mypage/Favorites';
 
 import { useAuth } from './context/AuthContext';
 import ProductList from './components/ProductList';
@@ -70,6 +74,23 @@ const App = () => {
               <Checkout />
             </PrivateRoute>
           }
+        />
+
+        <Route
+          path="/mypage"
+          element={<PrivateRoute><MyPageHome /></PrivateRoute>}
+        />
+        <Route
+          path="/mypage/profile"
+          element={<PrivateRoute><ProfilePage /></PrivateRoute>}
+        />
+        <Route
+          path="/mypage/orders"
+          element={<PrivateRoute><OrdersPage /></PrivateRoute>}
+        />
+        <Route
+          path="/mypage/favorites"
+          element={<PrivateRoute><FavoritesPage /></PrivateRoute>}
         />
 
         {/* 그 외 모든 경로 */}
