@@ -21,6 +21,7 @@ import MyPageHome    from './pages/mypage/Home';
 import ProfilePage   from './pages/mypage/Profile';
 import OrdersPage    from './pages/mypage/Orders';
 import FavoritesPage from './pages/mypage/Favorites';
+import Alerts from './pages/Alerts';
 
 import { useAuth } from './context/AuthContext';
 import ProductList from './components/ProductList';
@@ -91,6 +92,16 @@ const App = () => {
         <Route
           path="/mypage/favorites"
           element={<PrivateRoute><FavoritesPage /></PrivateRoute>}
+        />
+
+        {/* 로그인해야 접근 가능한 Alerts */}
+        <Route
+          path="/alerts"
+          element={
+            <PrivateRoute>
+              <Alerts />
+            </PrivateRoute>
+          }
         />
 
         {/* 그 외 모든 경로 */}
