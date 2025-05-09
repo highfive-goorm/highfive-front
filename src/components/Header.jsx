@@ -16,7 +16,7 @@ const Header = (props) => {
           <ul>
             <li className="menu-item"><Link to="/">마이페이지</Link></li>
             <li className="menu-item"><Link to="/cart">장바구니</Link></li>
-            <li className="menu-item"><Link to="/">공지사항</Link></li>
+            <li className="menu-item"><Link to="/alerts">공지사항</Link></li>
           </ul>
         </nav>
         <div className="header__member">
