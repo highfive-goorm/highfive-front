@@ -16,6 +16,7 @@ import Signup from './pages/Signup'; // 🔹 소문자 파일 이름 기준 impo
 import Product from './pages/Product'; //  상세 페이지
 import Search from './pages/Search'; // 검색 페이지
 import CartPage from './pages/Cart';
+import Checkout from './pages/Checkout'; // 결제 페이지
 
 import { useAuth } from './context/AuthContext';
 import ProductList from './components/ProductList';
@@ -57,6 +58,16 @@ const App = () => {
           element={
             <PrivateRoute>
               <CartPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 결제 페이지(로그인 필요) */}
+        <Route
+          path="/checkout"
+          element={
+            <PrivateRoute>
+              <Checkout />
             </PrivateRoute>
           }
         />
