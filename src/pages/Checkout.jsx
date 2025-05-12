@@ -1,7 +1,9 @@
+// pages/Checkout.js
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../api'; // axios 인스턴스
 import { useAuth } from '../context/AuthContext';
+import { requestKakaoPay } from '../api/kakaopay';
 
 export default function Checkout() {
   const location = useLocation();
@@ -33,6 +35,18 @@ export default function Checkout() {
   const shipping = (subtotal - discount) >= 30000 ? 0 : 3000;
   const total = subtotal - discount + shipping;
   const discountRate = discount > 0 ? Math.floor((discount / subtotal) * 100) : 0;
+
+  const handlePayment = async () => {
+    try {
+      const res = await requestKakaoPay(items, user);
+      sessionStorage.setItem('kakao_tid', res.tid); // 승인 시 사용
+      sessionStorage.setItem('kakao_user_id', user?.user_id || 'guest');
+      window.location.href = res.next_redirect_pc_url;
+    } catch (err) {
+      console.error('결제 준비 실패:', err);
+      alert('카카오페이 결제 요청에 실패했습니다.');
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6 flex flex-col md:flex-row gap-8">
@@ -104,6 +118,7 @@ export default function Checkout() {
         </div>
 
         <button
+          onClick={handlePayment}
           disabled={items.length === 0}
           className={`w-full py-2 mt-6 rounded-lg text-white font-medium ${
             items.length

@@ -1,4 +1,5 @@
 {
+  "proxy": "https://open-api.kakaopay.com",
   "name": "highfive-front",
   "version": "0.1.0",
   "private": true,

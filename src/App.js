@@ -26,6 +26,10 @@ import Alerts from './pages/Alerts';
 import { useAuth } from './context/AuthContext';
 import ProductList from './components/ProductList';
 
+import PayApprove from './pages/pay/PayApprove';
+import PayCancel from './pages/pay/PayCancel';
+import PayFail from './pages/pay/PayFail';
+
 const HomePage = () => (
   <>
     <SearchBar />
@@ -92,6 +96,19 @@ const App = () => {
         <Route
           path="/mypage/favorites"
           element={<PrivateRoute><FavoritesPage /></PrivateRoute>}
+        />
+
+        <Route
+          path="/pay/approve" 
+          element={<PayApprove />}
+        />
+        <Route
+          path="/pay/cancel" 
+          element={<PayCancel />}
+        />
+        <Route
+          path="/pay/fail" 
+          element={<PayFail />}
         />
 
         {/* 로그인해야 접근 가능한 Alerts */}
