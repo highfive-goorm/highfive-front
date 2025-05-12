@@ -13,7 +13,7 @@ export function updateCartItemQuantity(item_id, quantity) {
   return axios.put(`${BASE_URL}/cart/${item_id}`, { quantity }).then(res => res.data);
 }
 
-//／ 항목 삭제
+// 항목 삭제
 export function removeCartItem(item_id) {
   return axios.delete(`${BASE_URL}/cart/${item_id}`).then(res => res.data);
 }
