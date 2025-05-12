@@ -8,7 +8,6 @@ import Header from './components/Header';
 import Main from './components/Main';
 import Footer from './components/Footer';
 import Slider from './components/Slider';
-import Card from './components/Card';
 import PrivateRoute from './components/PrivateRoute';
 
 import LoginPage from './pages/Login';
@@ -29,12 +28,13 @@ import ProductList from './components/ProductList';
 import PayApprove from './pages/pay/PayApprove';
 import PayCancel from './pages/pay/PayCancel';
 import PayFail from './pages/pay/PayFail';
+import Recommend from './components/Recommend';
 
 const HomePage = () => (
   <>
     <SearchBar />
     <Main>
-      <Card element="section nexon" title="추천 서비스" />
+      <Recommend element="section nexon" title="추천 서비스"/>
       <Slider element="nexon" title="광고 배너"/>
       <ProductList element="section nexon" title="상품 리스트 테스트" /> {/* 추가 */}
     </Main>
