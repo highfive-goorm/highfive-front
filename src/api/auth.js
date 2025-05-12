@@ -1,6 +1,7 @@
 import api from './index';
+import axios from 'axios';
 
-const USE_STUB = process.env.REACT_APP_USE_STUB === 'false';
+const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
 
 /**
  * 로그인 요청
@@ -55,7 +56,7 @@ const USE_STUB = process.env.REACT_APP_USE_STUB === 'false';
  * - 실제: mockapi에서 전체 사용자 목록을 가져와서 클라이언트에서 account/password 매칭
  */
 export async function loginRequest(user_id, password) {
-  if (USE_STUB) {
+  if (!USE_STUB) {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         if (user_id === 'test' && password === 'test') {
@@ -104,10 +105,20 @@ export function getUserInfo(user_id) {
 
 /**
  * 회원가입 요청
+ * - REACT_APP_USE_STUB=true : mockapi.io 로 POST
+ * - 그렇지 않으면 실제 백엔드 /user 으로 POST (201 응답 기대)
  */
 export function signupRequest(data) {
   if (USE_STUB) {
-    return Promise.resolve({ success: true });
+    return axios
+      .post('https://68144d36225ff1af162871b7.mockapi.io/signup', data)
+      .then(res => res.data);
+  } else {
+    return api
+      .post('/user', data)
+      .then(res => {
+        if (res.status === 201) return res.data;
+        throw new Error(`Expected 201, got ${res.status}`);
+      });
   }
-  return api.post('/signup', data).then(res => res.data);
 }
