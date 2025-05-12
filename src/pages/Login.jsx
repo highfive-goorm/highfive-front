@@ -1,6 +1,6 @@
+// src/pages/Login.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { jwtDecode } from 'jwt-decode';
 import { useAuth } from "../context/AuthContext";
 import { loginRequest } from "../api/auth";
 
@@ -8,7 +8,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [account, setAccount] = useState("");
+  const [account, setAccount]   = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,23 +19,15 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // 로그인 API 호출
+      // 로그인 API 호출 (stub 모드든 실제 모드든 loginRequest 내부에서 처리)
       const { access, refresh } = await loginRequest(account, password);
-
-      // 로컬 스토리지에 토큰 저장
-      localStorage.setItem("accessToken", access);
-      localStorage.setItem("refreshToken", refresh);
-
-      // decode 해서 user_id 추출
-      const { user_id } = jwtDecode(access);
-
-      // Context에 user_id로 저장
-      login({ user_id: user_id });
-
-      // 메인 페이지로 이동
+      // AuthContext.login 으로 토큰 저장 및 user_id 추출·상태 반영
+      login({ access, refresh });
+      // 로그인 후 메인 페이지로 이동
       navigate("/");
-    } catch {
-      setErrorMsg("계정 또는 비밀번호가 올바르지 않습니다.");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("아이디 또는 비밀번호가 올바르지 않습니다.");
       setIsLoading(false);
     }
   };
@@ -48,11 +40,8 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ID 입력 */}
             <div>
-              <label
-                htmlFor="account"
-                className="block text-sm font-medium text-gray-700"
-              >
-                ID
+              <label htmlFor="account" className="block text-sm font-medium text-gray-700">
+                아이디
               </label>
               <input
                 id="account"
@@ -68,10 +57,7 @@ export default function LoginPage() {
 
             {/* 비밀번호 입력 */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 비밀번호
               </label>
               <input
@@ -97,12 +83,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full py-2 rounded-lg font-semibold transition-colors
-                ${
-                  isLoading
-                    ? "bg-gray-400 text-white cursor-not-allowed"
-                    : "bg-black text-white hover:bg-gray-100 hover:text-black"
-                }`}
+              className={`w-full py-2 rounded-lg font-semibold transition-colors ${
+                isLoading
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-black text-white hover:bg-gray-100 hover:text-black"
+              }`}
             >
               {isLoading ? "로그인 중..." : "로그인"}
             </button>
@@ -110,10 +95,7 @@ export default function LoginPage() {
             {/* 회원가입 링크 */}
             <p className="text-center text-sm">
               아직 회원이 아니신가요?{" "}
-              <Link
-                to="/signup"
-                className="text-black font-medium hover:underline"
-              >
+              <Link to="/signup" className="text-black font-medium hover:underline">
                 회원가입
               </Link>
             </p>
