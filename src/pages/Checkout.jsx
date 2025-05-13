@@ -1,4 +1,3 @@
-// pages/Checkout.js
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../api'; // axios 인스턴스
@@ -8,10 +7,10 @@ import { requestKakaoPay } from '../api/kakaopay';
 export default function Checkout() {
   const location = useLocation();
   const items = location.state?.items || [];
-  const { user } = useAuth(); // 로그인된 유저 정보 (user_id 포함)
-  const [address, setAddress] = useState(''); // 유저 주소 상태
+  const { user } = useAuth();
+  const [address, setAddress] = useState('');
 
-  // 유저 주소 가져오기
+  // 유저 주소 불러오기
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -28,9 +27,10 @@ export default function Checkout() {
     }
   }, [user]);
 
-  const subtotal = items.reduce((sum, i) => sum + i.ori_price * i.quantity, 0);
+  // 계산
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const discount = items.reduce((sum, i) => {
-    return sum + (i.ori_price - i.price) * i.quantity;
+    return sum + (i.price - i.discounted_price) * i.quantity;
   }, 0);
   const shipping = (subtotal - discount) >= 30000 ? 0 : 3000;
   const total = subtotal - discount + shipping;
@@ -39,8 +39,11 @@ export default function Checkout() {
   const handlePayment = async () => {
     try {
       const res = await requestKakaoPay(items, user);
-      sessionStorage.setItem('kakao_tid', res.tid); // 승인 시 사용
+      sessionStorage.setItem('kakao_tid', res.tid);
       sessionStorage.setItem('kakao_user_id', user?.user_id || 'guest');
+      sessionStorage.setItem('order_items', JSON.stringify(items));
+      sessionStorage.setItem('total_price', total);
+
       window.location.href = res.next_redirect_pc_url;
     } catch (err) {
       console.error('결제 준비 실패:', err);
@@ -67,18 +70,19 @@ export default function Checkout() {
               <div className="ml-4">
                 <h3 className="font-medium">{item.name}</h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  {item.ori_price && item.ori_price > item.price ? (
+                  {item.price > item.discounted_price ? (
                     <>
                       <span className="line-through mr-2 text-gray-400">
-                        {(item.ori_price * item.quantity).toLocaleString()}원
+                        {(item.price * item.quantity).toLocaleString()}원
                       </span>
                       <span className="text-black font-bold">
-                        {(item.price * item.quantity).toLocaleString()}원
+                        <span className="text-red-500 mr-1">{item.discount}%</span>
+                        {(item.discounted_price * item.quantity).toLocaleString()}원
                       </span>
                     </>
                   ) : (
                     <span className="text-black font-bold">
-                      {(item.price * item.quantity).toLocaleString()}원
+                      {(item.discounted_price * item.quantity).toLocaleString()}원
                     </span>
                   )}
                 </p>
@@ -88,7 +92,7 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* 오른쪽: 결제 금액 */}
+      {/* 오른쪽: 결제 요약 */}
       <div className="md:w-1/3 border rounded-lg p-6 bg-white h-fit">
         <h3 className="font-semibold text-lg mb-4">결제 금액</h3>
 
@@ -120,11 +124,7 @@ export default function Checkout() {
         <button
           onClick={handlePayment}
           disabled={items.length === 0}
-          className={`w-full py-2 mt-6 rounded-lg text-white font-medium ${
-            items.length
-              ? 'bg-blue-600 hover:bg-blue-700'
-              : 'bg-gray-400 cursor-not-allowed'
-          }`}
+          className="w-full py-2 bg-black text-white rounded hover:bg-gray-800"
         >
           결제 진행하기
         </button>
