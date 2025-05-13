@@ -66,7 +66,7 @@ export default function Signup() {
         const users = await axios
         .get('https://68144d36225ff1af162871b7.mockapi.io/signup')
         .then(res => res.data);
-        exists = users.some(u => u.user_id === form.account);  
+        exists = users.some(u => u.account === form.account);  
       } else {
         const resp = await api.get('/user/check-duplicate', { 
           params: { account: form.account },

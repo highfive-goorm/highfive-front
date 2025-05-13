@@ -2,18 +2,19 @@ import api from '../../../api/index';
 
 /**
  * 관리자용 Alert(CRUD) API
+ * 일단 admin이 아닌, 일반 post, put, delete로 하고 추후 수정
  */
 export const getAlerts = () =>
-  api.get('/admin/alerts').then(res => res.data);
+  api.get('/alert').then(res => res.data);
 
 export const getAlertById = (id) =>
-  api.get(`/admin/alerts/${id}`).then(res => res.data);
+  api.get(`/alert/${id}`).then(res => res.data);
 
 export const createAlert = ({ title, content, is_global }) =>
-  api.post('/admin/alerts', { title, content, is_global }).then(res => res.data);
+  api.post('/alert', { title, content, is_global }).then(res => res.data);
 
 export const updateAlert = (id, { title, content, is_global }) =>
-  api.put(`/admin/alerts/${id}`, { title, content, is_global }).then(res => res.data);
+  api.put(`/alert/${id}`, { title, content, is_global }).then(res => res.data);
 
 export const deleteAlert = (id) =>
-  api.delete(`/admin/alerts/${id}`);
+  api.delete(`/alert/${id}`);

@@ -17,7 +17,7 @@ export async function loginRequest(account, password) {
       .then(res => res.data);
 
     // account/password가 모두 일치하는 유저 찾기
-    const user = users.find(u => u.user_id === account && u.password === password);
+    const user = users.find(u => u.account === account && u.password === password);
     if (!user) {
       throw new Error('Invalid credentials');
     }
@@ -54,4 +54,20 @@ export function signupRequest(data) {
         throw new Error(`Expected 201, got ${res.status}`);
       });
   }
+}
+
+// 토큰 갱신 함수
+export async function refreshAccessToken() {
+  const refresh = localStorage.getItem('refreshToken');
+  if (!refresh) throw new Error('No refresh token stored');
+
+  // 백엔드에 refresh token 전송
+  const { data } = await api.post('/user/token/refresh', { refresh });
+  const { access, refresh: newRefresh } = data;
+
+  // 로컬 스토리지에 재저장
+  localStorage.setItem('accessToken', access);
+  localStorage.setItem('refreshToken', newRefresh);
+
+  return access;
 }

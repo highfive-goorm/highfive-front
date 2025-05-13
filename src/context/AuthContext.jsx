@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { getSessionId, clearSession as clearSessionStorage } from '../utils/session';
+import { refreshAccessToken } from '../api/auth';
 
 const AuthContext = createContext({
   user: null,
@@ -10,8 +11,19 @@ const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-
+  const [user, setUser] = useState(() => {
+    const access = localStorage.getItem('accessToken');
+    if (!access) return null;
+    try {
+      const { user_id, exp } = jwtDecode(access);
+      // 토큰 만료 확인
+      if (Date.now() / 1000 > exp) return null;
+      return { user_id };
+    } catch {
+      return null;
+    }
+  });
+  
   const login = ({ access, refresh }) => {
     // 1) 토큰 저장
     localStorage.setItem('accessToken', access);
@@ -36,16 +48,39 @@ export function AuthProvider({ children }) {
     const access = localStorage.getItem('accessToken');
     if (!access) return;
     try {
-      const { user_id, exp } = jwtDecode(access);
+      const { exp } = jwtDecode(access);
       if (Date.now() / 1000 > exp) {
-        return logout();
+        logout();
       }
-      setUser({ user_id });
     } catch {
       logout();
     }
   }, []);
 
+  useEffect(() => {
+    const scheduleRefresh = () => {
+      const access = localStorage.getItem('accessToken');
+      if (!access) return;
+      const { exp } = jwtDecode(access);
+      // exp: seconds 단위 UNIX timestamp
+      const timeout = exp * 1000 - Date.now() - 60 * 1000; 
+      if (timeout > 0) {
+        setTimeout(async () => {
+          try {
+            const newAccess = await refreshAccessToken();
+            const { user_id } = jwtDecode(newAccess);
+            setUser({ user_id });
+            scheduleRefresh();  // 다음 갱신도 스케줄링
+          } catch {
+            logout();  // 갱신 실패 시 로그아웃
+          }
+        }, timeout);
+      }
+    };
+  
+    scheduleRefresh();
+  }, []);
+  
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
       {children}

@@ -1,7 +1,9 @@
 // src/pages/admin/ads/adApi.js
 import api from '../../../api/index';
 
-/** GET /admin/ads → 광고 목록 조회 */
+// ad가 아니라 promotion으로 만들어서, 엔드포인트는 promotion으로 잡음
+// 일단 admin이 아닌, 일반 post, put, delete로 하고 추후 수정
+/** GET /promotion → 광고 목록 조회 */
 export const getAds = () => {
   if (process.env.REACT_APP_USE_STUB === 'true') {
     // 개발 모드라면 아래 임시 데이터 반환
@@ -23,37 +25,37 @@ export const getAds = () => {
     ]);
   }
   // 프로덕션 모드면 실제 API 호출
-  return api.get('/admin/ads').then(res => res.data);
+  return api.get('/promotion').then(res => res.data);
 };
 
 
 export const getAd = async (id) => {
-    const res = await api.get(`/admin/ads/${id}`);
+    const res = await api.get(`/promotion/${id}`);
     return res.data;
 };
 
-/** POST /admin/ads → 광고 생성 */
+/** POST /promotion → 광고 생성 */
 export const createAd = (ad) => {
   if (process.env.REACT_APP_USE_STUB === 'true') {
     // 개발 중엔 성공만 시뮬레이션
     return Promise.resolve({ ...ad, id: Date.now() });
   }
-  return api.post('/admin/ads', ad).then(res => res.data);
+  return api.post('/promotion', ad).then(res => res.data);
 };
 
-/** PUT /admin/ads/:id → 광고 수정 */
+/** PUT /promotion/:id → 광고 수정 */
 export const updateAd = (id, ad) => {
   if (process.env.REACT_APP_USE_STUB === 'true') {
     return Promise.resolve({ ...ad, id });
   }
-  return api.put(`/admin/ads/${id}`, ad).then(res => res.data);
+  return api.put(`/promotion/${id}`, ad).then(res => res.data);
 };
 
 
-/** DELETE /admin/ads/:id → 광고 삭제 */
+/** DELETE /promotion/:id → 광고 삭제 */
 export const deleteAd = (id) => {
   if (process.env.REACT_APP_USE_STUB === 'true') {
     return Promise.resolve();
   }
-  return api.delete(`/admin/ads/${id}`);
+  return api.delete(`/promotion/${id}`);
 };

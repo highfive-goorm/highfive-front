@@ -24,16 +24,16 @@ let stub_orders = [
   }
 ];
 
-/** GET /orders/{user_id} */
+/** GET /order/{user_id} */
 export function fetchOrders(user_id) {
   if (USE_STUB) {
     return new Promise(res => setTimeout(() => res([...stub_orders]), 200));
   }
-  return api.get(`/orders/${user_id}`).then(r => r.data);
+  return api.get(`/order/${user_id}`).then(r => r.data);
 }
 
 /**
- * PATCH /orders/{order_id}/status
+ * PATCH /order/{order_id}
  * 바디: { status: string }
  */
 export function updateOrderStatus(order_id, status) {
@@ -48,6 +48,6 @@ export function updateOrderStatus(order_id, status) {
     });
   }
   return api
-    .put(`/orders/${order_id}`, { status })
+    .put(`/order/${order_id}`, { status })
     .then(r => r.data);
 }
