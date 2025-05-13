@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import productsData from '../api/products.json';
 import { useAuth } from "../context/AuthContext"; // user_id 
+import { Link } from 'react-router-dom';
 
 const Recommend = ({ element, title }) => {
     const [products, setProducts] = useState([]);
@@ -41,7 +42,9 @@ const Recommend = ({ element, title }) => {
                 {products.map((product) => (
                     <article className="card" key={product.id}>
                         <figure className="card__header">
+                            <Link to={`/product/${product.id}`}>
                             <img src={product.img_url} alt={product.name} />
+                            </Link>
                         </figure>
                         <div className="card__body">
                             <h3 className="tit">{product.brand}</h3>
