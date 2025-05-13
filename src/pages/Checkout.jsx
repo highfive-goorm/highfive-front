@@ -1,12 +1,18 @@
+// src/pages/Checkout.jsx
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../api'; // axios 인스턴스
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { requestKakaoPay } from '../api/kakaopay';
 
+// 스텁 모드 여부
+const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
+// 스텁 서버 주소
+const STUB_SIGNUP_BASE_URL = 'https://68144d36225ff1af162871b7.mockapi.io';
+
 export default function Checkout() {
-  const location = useLocation();
-  const items = location.state?.items || [];
+  const { items = [], is_from_cart = false } = useLocation().state || {};
   const { user } = useAuth();
   const [address, setAddress] = useState('');
 
@@ -14,7 +20,12 @@ export default function Checkout() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await api.get(`https://68144d36225ff1af162871b7.mockapi.io/signup/${user.user_id}`);
+        let res;
+        if (USE_STUB) {
+          res = await axios.get(`${STUB_SIGNUP_BASE_URL}/signup/${user.user_id}`);
+        } else {
+          res = await api.get(`/user/${user.user_id}`);
+        }
         setAddress(res.data.address || '주소 정보 없음');
       } catch (err) {
         console.error('주소 가져오기 실패:', err);
@@ -38,11 +49,14 @@ export default function Checkout() {
 
   const handlePayment = async () => {
     try {
-      const res = await requestKakaoPay(items, user);
-      sessionStorage.setItem('kakao_tid', res.tid);
-      sessionStorage.setItem('kakao_user_id', user?.user_id || 'guest');
+      // 결제 흐름 플래그 및 주문 정보 저장
+      sessionStorage.setItem('is_from_cart', String(is_from_cart));
       sessionStorage.setItem('order_items', JSON.stringify(items));
       sessionStorage.setItem('total_price', total);
+
+      const res = await requestKakaoPay(items, user);
+      sessionStorage.setItem('kakao_tid', res.tid); // 승인 시 사용
+      sessionStorage.setItem('kakao_user_id', user?.user_id || 'guest');
 
       window.location.href = res.next_redirect_pc_url;
     } catch (err) {
