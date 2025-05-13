@@ -138,8 +138,9 @@ function Product() {
             img_url: product.img_url,
             quantity,
             discount: discount,
-          }
-        ]
+          },
+        ],
+        is_from_cart: false,
       }
     });
   };

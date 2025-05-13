@@ -5,13 +5,14 @@ import { useOrders } from '../../hooks/useOrders';
 
 // status 코드 → 레이블 매핑
 const STATUS_LABEL = {
+  paid:      '결제완료',
   shipping:  '배송중',
-  delivered: '배송완료',
-  refunded:  '환불완료'
+  shipped:   '배송완료',
+  cancelled: '환불완료'
 };
 
 export default function OrdersPage() {
-  const { orders, refund } = useOrders();
+  const { orders, cancel } = useOrders();
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
@@ -54,10 +55,10 @@ export default function OrdersPage() {
               {/* 환불 버튼 */}
               <div className="text-right">
                 <button
-                  onClick={() => refund(o.id)}
-                  disabled={o.status === 'refunded'}
+                  onClick={() => cancel(o.id)}
+                  disabled={o.status === 'cancelled'}
                   className={`px-4 py-1 text-sm rounded
-                    ${o.status === 'refunded'
+                    ${o.status === 'cancelled'
                       ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
                       : 'bg-red-600 text-white hover:bg-red-700'}`}
                 >
