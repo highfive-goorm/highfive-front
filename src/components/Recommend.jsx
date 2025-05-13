@@ -2,34 +2,75 @@ import React, { useEffect, useState } from 'react';
 import productsData from '../api/products.json';
 import { useAuth } from "../context/AuthContext"; // user_id 
 import { Link } from 'react-router-dom';
+import { fetchProducts, fetchBrands } from '../api/product'; // Mock api 
 
 const Recommend = ({ element, title }) => {
     const [products, setProducts] = useState([]);
     const { user } = useAuth(); // useAuth로부터 user 객체 가져오기
-    const user_id = user?.user_id;
+    const user_id = user?.account;
+    const [brands, setBrands] = useState({}); 
 
+    /*
+        // 초기 (local)
     useEffect(() => {
         // 추천 기준에 따라 필터링 또는 정렬
         const recommended = productsData
-            .sort((a, b) => b.product_likes - a.product_likes) // 좋아요순 정렬
+            .sort((a, b) => b.like_count - a.like_count) // 좋아요순 정렬
             .slice(0, 6); // 상위 6개만 표시
 
         setProducts(recommended);
     }, []);
+    */  
 
-    /* // fetch 사용 시
-    useEffect(() => {
-        fetch('/data/products.json')
-            .then(res => res.json())
-            .then(data => {
-                const recommended = data
-                    .filter(product => product.gender === "M")
-                    .sort((a, b) => b.product_likes - a.product_likes)
-                    .slice(0, 3);
+    /*
+        // 1차 가공 (fetchProducts - Mock api)
+        useEffect(() => {
+        const loadRecommended = async () => {
+            try {
+                const allProducts = await fetchProducts();
+                const recommended = allProducts
+                    .sort((a, b) => (b.like_count || 0) - (a.like_count || 0)) // 좋아요 수 기준 정렬
+                    .slice(0, 6); // 상위 6개만 표시
                 setProducts(recommended);
-            });
+            } catch (err) {
+                console.error("추천 상품 로딩 실패:", err);
+            }
+        };
+
+        loadRecommended();
     }, []);
-    */
+    */ 
+
+    // 2차 가공 (fetchBrands 추가 - Mock api)
+        useEffect(() => {
+        const loadRecommended = async () => {
+            try {
+                const [productData, brandData] = await Promise.all([
+                    fetchProducts(),
+                    fetchBrands()
+                ]);
+
+
+                // 브랜드 정보를 객체 형태로 가공: { brand_id(string): brand_kor }
+                const brandMap = {};
+                brandData.forEach(brand => {
+                    brandMap[String(brand.id)] = brand.brand_kor;
+                });
+                setBrands(brandMap);
+
+                // 추천 상품 정렬
+                const recommended = productData
+                    .sort((a, b) => (b.like_count || 0) - (a.like_count || 0))
+                    .slice(0, 6);
+
+                setProducts(recommended);
+            } catch (err) {
+                console.error("데이터를 불러오는 중 오류 발생:", err);
+            }
+        };
+
+        loadRecommended();
+    }, []);
 
 
     // {user?.user_id ?? '고객'} 예외 처리 
@@ -47,7 +88,7 @@ const Recommend = ({ element, title }) => {
                             </Link>
                         </figure>
                         <div className="card__body">
-                            <h3 className="tit">{product.brand}</h3>
+                            <h3 className="tit">{brands[String(product.brand_id)] ?? '브랜드 미지정'}</h3>
                             <p className="desc">{product.name}</p>
                             {product.discount > 0 && (
                                 <p className="card__discount">{product.discount}% 할인</p>
