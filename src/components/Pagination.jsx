@@ -1,9 +1,21 @@
-// Pagination.jsx
 import React from 'react';
 
-const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+const Pagination = ({
+    currentPage,
+    productsLength,
+    productsPerPage,
+    pageButtonCount,
+    onPageChange,
+}) => {
+    const totalPages = Math.ceil(productsLength / productsPerPage);
+
+    // 현재 블록의 시작-끝 페이지 계산
+    const startPage = Math.floor((currentPage - 1) / pageButtonCount) * pageButtonCount + 1;
+    const endPage = Math.min(startPage + pageButtonCount - 1, totalPages);
+
+    // 보여줄 페이지 번호 목록 생성
     const pageNumbers = [];
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(i);
     }
 

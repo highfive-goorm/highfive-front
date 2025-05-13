@@ -23,7 +23,7 @@ const ProductList = () => {
     const handleFilterChange = (category) => {
         setSelectedCategory(category);
         filterProducts(category);
-        setCurrentPage(1); // 페이지 초기화
+        setCurrentPage(1); // 페이지 초기화 : 필터 변경 시 첫 페이지로
     };
 
     // 선택된 카테고리에 따라 상품 데이터 필터링
@@ -39,18 +39,10 @@ const ProductList = () => {
     };
     
     // 페이지네이션 관련 코드
-    const totalPages = Math.ceil(products.length / productsPerPage);
-    const pageNumbers = [];
-    const startPage = Math.floor((currentPage - 1) / pageButtonCount) * pageButtonCount + 1;
-    const endPage = Math.min(startPage + pageButtonCount - 1, totalPages);
-
-    for (let i = startPage; i <= endPage; i++) {
-        pageNumbers.push(i);
-    }
-
-    const handlePageChange = (pageNumber) => {
-        setCurrentPage(pageNumber);
-    };
+    // 현재 페이지에 맞는 상품 추출
+    const indexOfLastProduct = currentPage * productsPerPage;
+    const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+    const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
 
     return (
         <section id="imageType" className="imageType__wrap section nexon">
@@ -58,15 +50,16 @@ const ProductList = () => {
             <p>상품 리스트 유형입니다. 상품이 리스트로 진열되는 구조입니다.</p>
             <ProductFilter selectedCategory={selectedCategory} onFilterChange={handleFilterChange} />
             <div className="product-list">
-                {products.slice((currentPage - 1) * productsPerPage, currentPage * productsPerPage).map((product) => (
+                {currentProducts.map((product) => (
                     <ProductItem key={product.id} product={product} />
                 ))}
             </div>
             <Pagination
                 currentPage={currentPage}
-                totalPages={totalPages}
-                pageNumbers={pageNumbers}
-                onPageChange={handlePageChange}
+                productsLength={products.length}
+                productsPerPage={productsPerPage}
+                pageButtonCount={pageButtonCount}
+                onPageChange={setCurrentPage}
             />
         </section>
     );
