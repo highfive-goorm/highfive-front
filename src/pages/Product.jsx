@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import products from '../api/products.json';
+import brands from '../api/brands.json';
 
 function Product() {
   const { id } = useParams();
@@ -10,20 +11,22 @@ function Product() {
   const { user } = useAuth();
 
   const product = products.find((p) => p.id.toString() === id) || {};
+  const brand = brands.find((b) => b.id === product.brand_id) || {};
+
   const [quantity, setQuantity] = useState(1);
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(product.product_likes ?? 0);
+  const [likeCount, setLikeCount] = useState(product.like_count ?? 0);
   const [brandLiked, setBrandLiked] = useState(false);
-  const [brandLikeCount, setBrandLikeCount] = useState(product.brand_likes ?? 0);
+  const [brandLikeCount, setBrandLikeCount] = useState(brand.like_count ?? 0);
 
   if (!product.id) return <p>상품을 찾을 수 없습니다.</p>;
 
-  const price = product.ori_price ?? product.price ?? 0;
+  const price = product.price ?? 0;
+  const discountedPrice = product.discounted_price ?? price;
   const discount = product.discount ?? 0;
-  const discountedPrice = Math.floor(price * ((100 - discount) / 100));
   const displayDiscountedPrice = discountedPrice.toLocaleString();
   const originalPrice = price.toLocaleString();
-  const discountPercent = `${discount}%`;
+  const discountPercent = discount > 0 ? `${discount}%` : '';
 
   const toggleLike = async () => {
     if (!user) {
@@ -61,7 +64,7 @@ function Product() {
     try {
       await axios.post(`/api/brand-like`, {
         user_id: user.user_id,
-        brand: product.brand,
+        brand_id: brand.id,
         liked: newState,
       });
     } catch (err) {
@@ -125,10 +128,18 @@ function Product() {
       {/* 우측 상세 */}
       <div style={{ flex: 1, marginLeft: '3rem' }}>
         <div>
-          <h3 style={{ display: 'inline-block', marginRight: '0.5rem' }}>{product.brand}</h3>
+          <h3 style={{ display: 'inline-block', marginRight: '0.5rem' }}>
+            {brand.brand_kor || product.brand}
+          </h3>
           <button
             onClick={toggleBrandLike}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'gray' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              color: 'gray'
+            }}
           >
             {brandLiked ? '❤️' : '🤍'} {brandLikeCount.toLocaleString()}
           </button>
@@ -138,10 +149,12 @@ function Product() {
         <h2>{product.name}</h2>
 
         <p>성별: {product.gender}</p>
-        <p>조회수: {product.page_view_total} | 판매 수: {product.purchase_total}</p>
+        <p>조회수: {product.view_count} | 판매 수: {product.purchase_count}</p>
 
         <div>
-          <p style={{ textDecoration: 'line-through', color: 'gray' }}>{originalPrice}원</p>
+          {discount > 0 && (
+            <p style={{ textDecoration: 'line-through', color: 'gray' }}>{originalPrice}원</p>
+          )}
           <p style={{ fontWeight: 'bold', fontSize: '1.5rem', color: '#ff003e' }}>
             {discountPercent} {displayDiscountedPrice}원
           </p>
