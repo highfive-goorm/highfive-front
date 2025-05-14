@@ -5,7 +5,7 @@ const SECRET_KEY = process.env.REACT_APP_KAKAO_SECRET_KEY;
 
 // ✅ 결제 준비 요청
 export async function requestKakaoPay(items, user) {
-  const totalAmount = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const totalAmount = items.reduce((sum, i) => sum + i.discounted_price * i.quantity, 0);
 
   const itemName =
     items.length === 1
