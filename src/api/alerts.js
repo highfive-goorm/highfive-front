@@ -1,35 +1,35 @@
 import api from './index';
+import axios from 'axios';
 
 const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
-
-// 샘플 stub 데이터 - length 변화시키면서 확인
-const stubAlerts = Array.from({ length: 60 }, (_, i) => ({
-  id: i + 1,
-  title: `테스트 공지 ${i + 1}`,
-  content: `내용 ${i + 1} 입니다.`,
-  created_at: new Date(2025, 4, i + 1).toISOString(),  // 2025-05-01 ~ 2025-05-05
-  is_global: i % 2 === 0,
-}));
+const STUB_BASE_URL = 'https://6822d576b342dce8004f85a8.mockapi.io';
 
 /**
- * 공지사항 목록 조회
- * GET /alert
- * - user_id: 현재 로그인한 유저의 ID
- * - page, size: 페이지네이션 옵션 (기본 page=1, size=10)
- * @returns { data: { alerts: Array, total: number } }
+ * 공지사항 목록 조회 (클라이언트 페이지네이션)
+ * - mockapi는 페이지네이션 미지원이므로 전체를 가져와서 클라이언트에서 잘라 씁니다.
+ * @param {string} user_id 현재 로그인한 유저 ID
+ * @param {number} page 페이지 번호 (기본 1)
+ * @param {number} size 페이지 크기 (기본 10)
+ * @returns {{ alerts: Array, total: number }}
  */
-export const fetchAlerts = async (user_id, page = 1, size = 10) => {
+export async function fetchAlerts(user_id, page = 1, size = 10) {
+  let allAlerts;
+
   if (USE_STUB) {
-    const total = stubAlerts.length;
-    const start = (page - 1) * size;
-    const paged = stubAlerts.slice(start, start + size);
-    // 느린 네트워크 흉내
-    await new Promise(res => setTimeout(res, 200));
-    return { alerts: paged, total };
+    // stub 모드: mockapi로 전체 공지 불러오기
+    const response = await axios.get(`${STUB_BASE_URL}/alert`);
+    allAlerts = response.data;
+  } else {
+    // 실제 API 호출
+    const response = await api.get('/alert', { params: { user_id } });
+    const payload = response.data;
+    // 서버가 { alerts, total } 형태라면 alerts 추출, 아니면 배열 그대로
+    allAlerts = Array.isArray(payload) ? payload : payload.alerts || [];
   }
 
-  // 실제 API 호출
-  const params = { user_id, page, size };
-  const response = await api.get('/alert', { params });
-  return response.data;
-};
+  const total = allAlerts.length;
+  const start = (page - 1) * size;
+  const alerts = allAlerts.slice(start, start + size);
+
+  return { alerts, total };
+}

@@ -15,7 +15,7 @@ export const fetchProducts = async () => {
 // 브랜드 전체 조회
 export const fetchBrands = async () => {
   if (USE_STUB) {
-    return axios.get(`${STUB_BASE_URL}/brand`);
+    return axios.get(`${STUB_BASE_URL}/brand`).then(r => r.data);
   }
   return api.get(`/brand`).then(r => r.data);
 };
