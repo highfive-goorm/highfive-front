@@ -1,4 +1,4 @@
-// ProductFilter.jsx
+// src/componenets/ProductFilter.jsx
 import React, { useState } from 'react';
 
 const ProductFilter = ({ onFilterChange }) => {
