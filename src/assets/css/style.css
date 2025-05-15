@@ -459,6 +459,11 @@ h1.search-title {
 
 /* card__inner */
 
+.card__header img {
+    width: 100%;
+    height: 280px;
+}
+
 p.card__sub__title {
     margin-bottom: 35px;
 }
