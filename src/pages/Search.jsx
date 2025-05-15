@@ -28,11 +28,9 @@ export default function Search() {
         <h1 className="search-title">검색어: {query}</h1>
       </div>
 
-      {error && <div className="search-error">오류가 발생했습니다: {error.message}</div>}
-
       <div className="search-container">
         <ProductList
-          products={products}
+          products={error ? [] : products}
           loading={loading}
           selectedCategory={selectedCategory}
           onFilterChange={handleFilterChange}
