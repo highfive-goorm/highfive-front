@@ -1,22 +1,33 @@
+// src/components/CartSummary.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAnalytics } from '../hooks/useAnalytics';
 
+/**
+ * @param {Object[]} items         // [{ product_id, quantity, price, discounted_price, discount, name, img_url }]
+ * @param {boolean}  loading
+ */
 export default function CartSummary({ items, loading }) {
   const navigate = useNavigate();
   const { track } = useAnalytics();
 
-  const subtotal = items.reduce((sum, i) => sum + (i.price) * i.quantity, 0);
-  const discount = items.reduce(
-    (sum, i) => sum + ((i.price ?? 0) - (i.discounted_price ?? i.price)) * i.quantity,
+  const subtotal = items.reduce(
+    (sum, i) => sum + i.price * i.quantity,
     0
   );
-  const shipping = subtotal >= 30000 ? 0 : 3000;
-  const total = subtotal + shipping - discount;
-  const rate = discount > 0 ? Math.floor((discount / (subtotal + discount)) * 100) : 0;
+  const discount = items.reduce(
+    (sum, i) => sum + (i.price - i.discounted_price) * i.quantity,
+    0
+  );
+  const shipping = subtotal - discount >= 30000 ? 0 : 3000;
+  const total = subtotal - discount + shipping;
+  const rate =
+    discount > 0
+      ? Math.floor((discount / (subtotal + discount)) * 100)
+      : 0;
 
   const handleCheckout = () => {
-    if (items.length === 0) return;
+    if (loading || items.length === 0) return;
 
     track('checkout', {
       product_ids: items.map(i => i.product_id),
@@ -63,10 +74,10 @@ export default function CartSummary({ items, loading }) {
       <button
         onClick={handleCheckout}
         disabled={loading || items.length === 0}
-        className={`w-full py-2 bg-black text-white rounded hover:bg-gray-800`}
+        className="w-full py-2 bg-black text-white rounded hover:bg-gray-800"
       >
         결제하기
       </button>
     </div>
-  );
+  )
 }
