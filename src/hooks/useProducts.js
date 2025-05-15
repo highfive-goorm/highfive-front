@@ -10,6 +10,9 @@ export function useProducts(name = '') {
   useEffect(() => {
     let canceled = false;
     setLoading(true);
+    setError(null);
+    setProducts([]);
+    
     fetchProducts(name)
       .then(data => {
         if (!canceled) setProducts(data);

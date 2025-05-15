@@ -32,8 +32,8 @@ export async function fetchProductById(id) {
   if (USE_STUB) {
     // stub 모드: mockapi에 단건 엔드포인트가 있다면
     return axios
-      .get(`${STUB_BASE_URL}/product?id=id`)
-      .then(r => r.data);
+      .get(`${STUB_BASE_URL}/product?id=^${id}$`)
+      .then(r => (r.data.length > 0 ? r.data[0] : null));
   }
 
   return api
