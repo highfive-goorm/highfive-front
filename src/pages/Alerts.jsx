@@ -5,11 +5,11 @@ import { useAuth } from '../context/AuthContext';
 
 const Alerts = () => {
   const { user } = useAuth();
-  const userId = user?.user_id;
+  const user_id = user?.user_id;
   const [page, setPage] = useState(1);
 
   const { alerts, total, loading, error } =
-    useAlerts(userId, { page, size: 10 });
+    useAlerts(user_id, { page, size: 10 });
   const totalPages = Math.ceil(total / 10);
 
   const delta = 2;

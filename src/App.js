@@ -1,5 +1,5 @@
 // src/App.js
-import React from 'react';
+import React, { useState } from 'react';
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 
 import './assets/css/reset.css';
@@ -40,18 +40,40 @@ import PayApprove from './pages/pay/PayApprove';
 import PayCancel from './pages/pay/PayCancel';
 import PayFail from './pages/pay/PayFail';
 
+import { useProducts } from './hooks/useProducts';
+
 import { useAuth } from './context/AuthContext';
 
-const HomePage = () => (
-  <>
-    <SearchBar />
-    <Main>
-      <Recommend element="section nexon" title="추천 서비스"/>
-      <Slider element="nexon" title="광고 배너"/>
-      <ProductList element="section nexon" title="상품 리스트 테스트" /> {/* 추가 */}
-    </Main>
-  </>
-);
+const HomePage = () => {
+  const { products, loading, error } = useProducts('');
+
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  return (
+    <>
+      <SearchBar />
+      <Main>
+        <Recommend element="section nexon" title="추천 서비스"/>
+        <Slider element="nexon" title="광고 배너"/>
+        {error && <div className="text-red-500">상품 로딩 중 오류: {error.message}</div>}
+        <ProductList
+          products={products}
+          loading={loading}
+          selectedCategory={selectedCategory}
+          onFilterChange={cat => {
+            setSelectedCategory(cat);
+            setCurrentPage(1);
+          }}
+          currentPage={currentPage}
+          productsPerPage={15}
+          pageButtonCount={5}
+          onPageChange={setCurrentPage}
+        />
+      </Main>
+    </>
+  );
+};
 
 const App = () => {
   const location = useLocation();

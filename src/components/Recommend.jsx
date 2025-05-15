@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import productsData from '../api/products.json';
 import { useAuth } from "../context/AuthContext"; // user_id 
 import { Link } from 'react-router-dom';
 import { fetchProducts, fetchBrands } from '../api/product'; // Mock api 
