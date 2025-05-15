@@ -1,4 +1,4 @@
-// ProductItem.jsx
+// src/components/ProductItem.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
