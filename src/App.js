@@ -45,7 +45,7 @@ import { useProducts } from './hooks/useProducts';
 import { useAuth } from './context/AuthContext';
 
 const HomePage = () => {
-  const { products, loading, error } = useProducts('');
+  const { products, loading } = useProducts('');
 
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,7 +56,6 @@ const HomePage = () => {
       <Main>
         <Recommend element="section nexon" title="추천 서비스"/>
         <Slider element="nexon" title="광고 배너"/>
-        {error && <div className="text-red-500">상품 로딩 중 오류: {error.message}</div>}
         <ProductList
           products={products}
           loading={loading}

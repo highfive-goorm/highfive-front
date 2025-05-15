@@ -2,48 +2,36 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { fetchProducts } from '../api/product';
-
-const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
+import { fetchRecommendedProducts } from '../api/recommend';
 
 const Recommend = ({ element, title }) => {
   const [products, setProducts] = useState([]);
+  const [account, setAccount] = useState(null);
   const { user } = useAuth();
   const user_id = user?.user_id;
 
   useEffect(() => {
     const loadRecommended = async () => {
       try {
-        const allProducts = await fetchProducts();
-
-        let recommended;
-        if (USE_STUB) {
-          recommended = allProducts
-            .sort((a, b) => (b.like_count || 0) - (a.like_count || 0))
-            .slice(0, 6);
-        } else {
-          recommended = allProducts
-            .sort((a, b) => (b.product_like || 0) - (a.product_like || 0))
-            .slice(0, 6);
-        }
-
-        setProducts(recommended);
+        const { user_account, recommends } = await fetchRecommendedProducts(user_id);
+        setAccount(user_account);
+        setProducts(recommends);
       } catch (err) {
         console.error('추천 상품 로딩 실패:', err);
       }
     };
 
     loadRecommended();
-  }, []);
+  }, [user_id]);
 
   return (
     <section id="cardType" className={`card__wrap ${element}`}>
       <h2>{title}</h2>
       <p className="card__sub__title">
-        ☁️ {user_id ?? '비회원'} 님을 위한 추천 상품입니다.
+        ☁️ {account ?? '비회원'} 님을 위한 추천 상품입니다.
       </p>
       <div className="card__inner container">
-        {products.map((product) => (
+        {products.map(product => (
           <article className="card" key={product.id}>
             <figure className="card__header">
               <Link to={`/product/${product.id}`}>
