@@ -3,21 +3,61 @@ import api from './index';
 import axios from "axios";
 
 const STUB_BASE_URL = 'https://6822bd75b342dce8004f37fb.mockapi.io';
-const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
+const USE_STUB      = process.env.REACT_APP_USE_STUB === 'true';
 
 /**
  * 상품 목록 조회
- * @param {string} name 검색어 (빈 문자열이면 전체 조회)
+ * @param {string} name     검색어 (빈 문자열이면 전체)
+ * @param {number} page     페이지 번호
+ * @param {number} size     페이지 크기
+ * @param {string} filter   major_category 또는 gender 필터 ('' 이면 전체)
+ * @returns {Promise<{ total: number, items: Array }>}
  */
-export async function fetchProducts(name = '') {
-  const params = name ? { name } : {};
+export async function fetchProducts(
+  name = '',
+  page = 1,
+  size = 15,
+  filter = ''
+) {
+  const params = { page, size };
+  if (name) params.name = name;
 
-  if (USE_STUB) {
-    return axios
-      .get(`${STUB_BASE_URL}/product`, { params })
-      .then(r => r.data);
+  // 'F','M','U' 면 gender 필터, 그 외 non-empty면 major_category 필터
+  if (filter) {
+    if (['F', 'M', 'U'].includes(filter)) {
+      params.gender = filter;
+    } else {
+      params.major_category = filter;
+    }
   }
 
+  if (USE_STUB) {
+    // Stub 모드: 전체 불러와서 흉내
+    return axios
+      .get(`${STUB_BASE_URL}/product`, { params: { name } })
+      .then(r => {
+        let all = r.data;
+        // 이름 필터
+        if (name) {
+          const q = name.toLowerCase();
+          all = all.filter(p => p.name.toLowerCase().includes(q));
+        }
+        // 성별 or 카테고리 필터
+        if (filter) {
+          if (['F', 'M', 'U'].includes(filter)) {
+            all = all.filter(p => p.gender === filter);
+          } else {
+            all = all.filter(p => p.major_category === filter);
+          }
+        }
+        const total = all.length;
+        const start = (page - 1) * size;
+        const items = all.slice(start, start + size);
+        return { total, items };
+      });
+  }
+
+  // 실제 모드: backend가 { total, items } 반환
   return api
     .get('/product', { params })
     .then(r => r.data);

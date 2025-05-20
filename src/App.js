@@ -45,10 +45,17 @@ import { useProducts } from './hooks/useProducts';
 import { useAuth } from './context/AuthContext';
 
 const HomePage = () => {
-  const { products, loading } = useProducts('');
-
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 15;
+
+  // 전체 상품 조회: 페이지네이션 포함
+  const {
+    items: products,
+    total: totalItems,
+    loading,
+    error,
+  } = useProducts('', currentPage, productsPerPage, selectedCategory);
 
   return (
     <>
@@ -57,7 +64,8 @@ const HomePage = () => {
         <Recommend element="section nexon" title="추천 서비스"/>
         <Slider element="nexon" title="광고 배너"/>
         <ProductList
-          products={products}
+          products={error ? [] : products}
+          totalItems={totalItems}
           loading={loading}
           selectedCategory={selectedCategory}
           onFilterChange={cat => {
@@ -65,7 +73,7 @@ const HomePage = () => {
             setCurrentPage(1);
           }}
           currentPage={currentPage}
-          productsPerPage={15}
+          productsPerPage={productsPerPage}
           pageButtonCount={5}
           onPageChange={setCurrentPage}
         />
