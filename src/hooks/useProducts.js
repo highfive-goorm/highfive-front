@@ -2,30 +2,39 @@
 import { useState, useEffect } from 'react';
 import { fetchProducts } from '../api/product';
 
-export function useProducts(name = '') {
-  const [products, setProducts] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
+/**
+ * @param {string} name 검색어
+ * @param {number} page 페이지 번호
+ * @param {number} size 페이지 크기
+ * @param {string} category major_category 필터
+ */
+export function useProducts(name = '', page = 1, size = 15, category = '') {
+  const [items, setItems]     = useState([]);
+  const [total, setTotal]     = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
 
   useEffect(() => {
     let canceled = false;
     setLoading(true);
     setError(null);
-    setProducts([]);
-    
-    fetchProducts(name)
-      .then(data => {
-        if (!canceled) setProducts(data);
+
+    fetchProducts(name, page, size, category)
+      .then(({ total, items }) => {
+        if (!canceled) {
+          setTotal(total);
+          setItems(items);
+        }
       })
       .catch(err => {
-        console.error('상품 조회 실패', err);
         if (!canceled) setError(err);
       })
       .finally(() => {
         if (!canceled) setLoading(false);
       });
-    return () => { canceled = true; };
-  }, [name]);
 
-  return { products, loading, error };
+    return () => { canceled = true; };
+  }, [name, page, size, category]);
+
+  return { items, total, loading, error };
 }
