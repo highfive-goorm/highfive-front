@@ -1,4 +1,3 @@
-// src/pages/Product.jsx
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -25,8 +24,8 @@ export default function Product() {
         setProduct(prod);
         setProductLiked(false);
         setBrandLiked(false);
-        setProductLikeCount(prod.product_likes ?? 0);
-        setBrandLikeCount(prod.brand_like ?? 0);
+        setProductLikeCount(prod.like_count ?? 0);       // API 필드 매핑 수정
+        setBrandLikeCount(prod.brand_like_count ?? 0);  // API 필드 매핑 수정
       })
       .catch(err => console.error('상품 불러오기 실패', err));
   }, [id]);
@@ -43,8 +42,8 @@ export default function Product() {
     major_category,
     sub_category,
     gender,
-    page_view_total,
-    purchase_total,
+    view_count,
+    purchase_count,
     brand_kor,
     brand_id,
   } = product;
@@ -57,16 +56,24 @@ export default function Product() {
     if (!user) { alert('로그인이 필요합니다.'); return navigate('/login'); }
     const newState = !productLiked;
     setProductLiked(newState);
-    setProductLikeCount(c => c + (newState ? 1 : -1));
-    try { await toggleProductLike(id, user.user_id, newState); } catch (err) { console.error('상품 좋아요 처리 실패', err); }
+    setProductLikeCount(prev => prev + (newState ? 1 : -1));
+    try {
+      await toggleProductLike(id, user.user_id, newState);
+    } catch (err) {
+      console.error('상품 좋아요 처리 실패', err);
+    }
   };
 
   const handleToggleBrandLike = async () => {
     if (!user) { alert('로그인이 필요합니다.'); return navigate('/login'); }
     const newState = !brandLiked;
     setBrandLiked(newState);
-    setBrandLikeCount(c => c + (newState ? 1 : -1));
-    try { await toggleBrandLike(brand_id, user.user_id, newState); } catch (err) { console.error('브랜드 좋아요 처리 실패', err); }
+    setBrandLikeCount(prev => prev + (newState ? 1 : -1));
+    try {
+      await toggleBrandLike(brand_id, user.user_id, newState);
+    } catch (err) {
+      console.error('브랜드 좋아요 처리 실패', err);
+    }
   };
 
   const handleAddToCart = async () => {
@@ -74,7 +81,10 @@ export default function Product() {
     try {
       await addCartItem(user.user_id, id, quantity);
       if (window.confirm('장바구니에 담겼습니다. 이동할까요?')) navigate('/cart');
-    } catch (err) { console.error('장바구니 추가 실패', err); alert('장바구니 추가 실패'); }
+    } catch (err) {
+      console.error('장바구니 추가 실패', err);
+      alert('장바구니 추가 실패');
+    }
   };
 
   const handleBuyNow = () => {
@@ -94,7 +104,8 @@ export default function Product() {
         <div className="flex items-center space-x-2">
           <h3 className="text-lg font-semibold">{brand_kor}</h3>
           <button onClick={handleToggleBrandLike} className="flex items-center text-gray-600 hover:text-gray-800">
-            {brandLiked ? '❤️' : '🤍'}<span className="ml-1 text-sm">{brandLikeCount.toLocaleString()}</span>
+            {brandLiked ? '❤️' : '🤍'}
+            <span className="ml-1 text-sm">{brandLikeCount.toLocaleString()}</span>
           </button>
         </div>
         {/* 카테고리 */}
@@ -103,7 +114,7 @@ export default function Product() {
         <h1 className="text-2xl md:text-3xl font-bold">{name}</h1>
         {/* 상세 통계 */}
         <p className="text-sm text-gray-600">
-          성별: {gender} | 조회수: {page_view_total} | 판매 수: {purchase_total}
+          성별: {gender} | 조회수: {view_count.toLocaleString()} | 판매 수: {purchase_count.toLocaleString()}
         </p>
         {/* 가격 정보 */}
         <div className="space-y-1">
@@ -123,7 +134,8 @@ export default function Product() {
         {/* 액션 영역: 상품 좋아요, 장바구니, 구매하기 */}
         <div className="flex items-center space-x-4 pt-4">
           <button onClick={handleToggleProductLike} className="flex items-center text-gray-600 hover:text-gray-800">
-            {productLiked ? '❤️' : '🤍'}<span className="ml-1 text-sm">{productLikeCount.toLocaleString()}</span>
+            {productLiked ? '❤️' : '🤍'}
+            <span className="ml-1 text-sm">{productLikeCount.toLocaleString()}</span>
           </button>
           <button onClick={handleAddToCart} className="px-4 py-2 border rounded hover:bg-gray-100">장바구니</button>
           <button onClick={handleBuyNow} className="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">구매하기</button>
