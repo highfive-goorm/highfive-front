@@ -2,6 +2,7 @@
 import axios from 'axios';
 
 const SECRET_KEY = process.env.REACT_APP_KAKAO_SECRET_KEY;
+const SERVICE_HOST_URL = process.env.REACT_APP_SERVICE_HOST_URL;
 
 // ✅ 결제 준비 요청
 export async function requestKakaoPay(items, user) {
@@ -20,9 +21,9 @@ export async function requestKakaoPay(items, user) {
     quantity: items.length,
     total_amount: totalAmount,
     tax_free_amount: 0,
-    approval_url: 'http://localhost:3000/pay/approve',
-    cancel_url: 'http://localhost:3000/pay/cancel', // 보류
-    fail_url: 'http://localhost:3000/pay/fail',
+    approval_url: `${SERVICE_HOST_URL}/pay/approve`,
+    cancel_url: `${SERVICE_HOST_URL}/pay/cancel`, // 보류
+    fail_url: `${SERVICE_HOST_URL}/pay/fail`,
   };
 
   const headers = {

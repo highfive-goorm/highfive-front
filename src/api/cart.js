@@ -14,12 +14,12 @@ export function fetchCart(user_id) {
 
 /**
  * 장바구니에 상품 추가
- * POST /cart
- * body: { user_id, product_id, quantity }
+ * POST /cart/{user_id}
+ * body: { product_id, quantity }
  */
 export function addCartItem(user_id, product_id, quantity) {
   return api
-    .post('/cart', { user_id, product_id, quantity })
+    .post(`/cart/${user_id}`, { product_id, quantity })
     .then(res => res.data);
 }
 /**
