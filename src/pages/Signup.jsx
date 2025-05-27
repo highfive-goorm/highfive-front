@@ -68,8 +68,8 @@ export default function Signup() {
         .then(res => res.data);
         exists = users.some(u => u.account === form.account);  
       } else {
-        const resp = await api.get('/user/check-duplicate', { 
-          params: { account: form.account },
+        const resp = await api.post('/user/check-duplicate', { 
+          account: form.account,
         });
         exists = resp.data.exists;
       }      

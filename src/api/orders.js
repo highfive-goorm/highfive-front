@@ -48,7 +48,7 @@ export function createOrder({ user_id, items, total_price, is_from_cart, status 
     order_items: items.map(item => ({
       product_id: item.product_id,
       quantity: item.quantity,
-      price: item.price,
+      discounted_price: item.price,
     })),
     total_price,
     is_from_cart,
