@@ -24,7 +24,7 @@ export default function MyPageHome() {
           onClick={() => nav('/mypage/favorites')}
           className="block w-64 mx-auto py-2 bg-black text-white rounded hover:bg-gray-800"
         >
-          즐겨찾기
+          좋아요
         </button>
       </div>
     </main>

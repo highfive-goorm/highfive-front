@@ -5,10 +5,13 @@ import App from './App';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { SessionProvider }from './context/SessionContext';
+import { loadAppConfig } from './config'; // 설정 로더 임포트
+
 
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
+loadAppConfig().then(() => {
+  root.render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
@@ -18,4 +21,6 @@ root.render(
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
-);
+  );
+});
+

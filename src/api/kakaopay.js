@@ -1,11 +1,13 @@
 // src/api/kakaopay.js
 import axios from 'axios';
+import { getServiceHostUrl } from '../config';
 
 const SECRET_KEY = process.env.REACT_APP_KAKAO_SECRET_KEY;
-const SERVICE_HOST_URL = process.env.REACT_APP_SERVICE_HOST_URL;
 
 // ✅ 결제 준비 요청
 export async function requestKakaoPay(items, user) {
+  const SERVICE_HOST_URL = getServiceHostUrl();
+  
   const totalAmount = items.reduce((sum, i) => sum + i.discounted_price * i.quantity, 0);
 
   const itemName =

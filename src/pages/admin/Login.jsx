@@ -16,21 +16,9 @@ export default function AdminLogin() {
     setErrorMsg("");
     setIsLoading(true);
 
-    // 개발 모드 스텁 로그인 (admin/password)
-    if (process.env.REACT_APP_USE_STUB === "true") {
-      if (id === "admin" && password === "password") {
-        sessionStorage.setItem("adminId", id);
-        return navigate("/admin/dashboard");
-      } else {
-        setErrorMsg("아이디 또는 비밀번호가 올바르지 않습니다.");
-        setIsLoading(false);
-        return;
-      }
-    }
-
     // TODO: 실제 API 호출로 대체
     try {
-      const res = await api.post("/admin/login", { id, password });
+      const res = await api.post("/admin", { account: id, password });
       sessionStorage.setItem("adminId", res.data.id);
       navigate("/admin/dashboard");
     } catch {
