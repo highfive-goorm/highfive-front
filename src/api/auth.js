@@ -2,38 +2,15 @@
 import api from './index';
 import axios from 'axios';
 
-const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
 
 /**
  * 로그인 요청
- * - stub 모드: mockapi 에서 account/password 매칭 후 임의 JWT 생성
  * - 실제 모드: POST /user/login 으로 { access, refresh } 반환
  */
 export async function loginRequest(account, password) {
-  if (USE_STUB) {
-    // mockapi 에서 가입된 유저 목록 조회
-    const users = await axios
-      .get('https://68144d36225ff1af162871b7.mockapi.io/signup')
-      .then(res => res.data);
-
-    // account/password가 모두 일치하는 유저 찾기
-    const user = users.find(u => u.account === account && u.password === password);
-    if (!user) {
-      throw new Error('Invalid credentials');
-    }
-
-    // 학습용 임의 JWT 생성 (header.payload.)
-    const header  = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-    const payload = btoa(JSON.stringify({ user_id: user.id }));
-    const fakeToken = `${header}.${payload}.`;
-
-    return { access: fakeToken, refresh: fakeToken };
-  } else {
-    // 실제 백엔드 호출
-    // POST /user/login { account, password } → { access, refresh }
-    const res = await api.post('/user/login', { account, password });
-    return res.data;
-  }
+  // POST /user/login { account, password } → { access, refresh }
+  const res = await api.post('/user/login', { account, password });
+  return res.data;
 }
 
 /**
@@ -42,32 +19,37 @@ export async function loginRequest(account, password) {
  * - 그렇지 않으면 실제 백엔드 /user 으로 POST (201 응답 기대)
  */
 export function signupRequest(data) {
-  if (USE_STUB) {
-    return axios
-      .post('https://68144d36225ff1af162871b7.mockapi.io/signup', data)
-      .then(res => res.data);
-  } else {
-    return api
-      .post('/user', data)
-      .then(res => {
-        if (res.status === 201) return res.data;
-        throw new Error(`Expected 201, got ${res.status}`);
-      });
-  }
+  return api
+    .post('/user', data)
+    .then(res => {
+      if (res.status === 201) return res.data;
+      throw new Error(`Expected 201, got ${res.status}`);
+    });
 }
 
-// 토큰 갱신 함수
+// 토큰 갱신 함수 (sessionStorage 사용)
 export async function refreshAccessToken() {
-  const refresh = localStorage.getItem('refreshToken');
-  if (!refresh) throw new Error('No refresh token stored');
+  const refresh = sessionStorage.getItem('refreshToken'); // localStorage -> sessionStorage
+  if (!refresh) {
+    throw new Error('No refresh token stored');
+  }
 
-  // 백엔드에 refresh token 전송
-  const { data } = await api.post('/user/token/refresh', { refresh });
-  const { access, refresh: newRefresh } = data;
+  try {
+    // 백엔드에 refresh token 전송
+    // api.post는 Gateway를 통해 실제 /user/token/refresh 엔드포인트로 갈 것임
+    const response = await api.post('/user/token/refresh', { refresh });
+    const { access, refresh: newRefresh } = response.data; // 실제 응답 구조에 따라 data.access 등 조정
 
-  // 로컬 스토리지에 재저장
-  localStorage.setItem('accessToken', access);
-  localStorage.setItem('refreshToken', newRefresh);
-
-  return access;
+    // 세션 스토리지에 재저장
+    sessionStorage.setItem('accessToken', access);
+    if (newRefresh) { // 백엔드가 새 리프레시 토큰을 줄 수도 있음
+        sessionStorage.setItem('refreshToken', newRefresh);
+    }
+    
+    return access;
+  } catch (error) {
+    console.error('Error refreshing access token:', error.response?.data || error.message);
+    // 여기서 에러를 throw하면 AuthContext의 catch 블록에서 처리됨 (로그아웃 등)
+    throw error;
+  }
 }

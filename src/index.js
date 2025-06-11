@@ -23,4 +23,3 @@ loadAppConfig().then(() => {
   </React.StrictMode>
   );
 });
-

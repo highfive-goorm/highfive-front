@@ -12,6 +12,7 @@ import { // 수정된 API 함수 임포트
   getUserLikedBrands
 } from '../api/likes';
 import { addCartItem } from '../api/cart';
+import { useTracking } from '../hooks/useTracking';
 
 export default function Product() {
   const { id: productIdString } = useParams(); // URL 파라미터는 문자열
@@ -32,6 +33,8 @@ export default function Product() {
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
   const [isLikeActionLoading, setIsLikeActionLoading] = useState(false); // 좋아요/취소 액션 로딩
 
+  const { trackEvent } = useTracking();
+
   // 상품 정보 및 사용자 좋아요 상태 초기화
   useEffect(() => {
     if (isNaN(productId)) {
@@ -42,118 +45,177 @@ export default function Product() {
     }
 
     setIsLoadingProduct(true);
+    let isMounted = true; // 컴포넌트 언마운트 시 비동기 작업 중단 플래그
+
     fetchProductById(productId)
-      .then(prodData => {
-        setProduct(prodData);
-        setProductLikeCount(prodData.like_count ?? 0);
-        setBrandLikeCount(prodData.brand_like_count ?? 0); // 백엔드 CombinedProduct 스키마에 따름
+      .then(productDataFromApi => {
+        if (!isMounted) return; // 언마운트되었으면 상태 업데이트 방지
 
-        if (user && user.user_id) {
-          // 상품 좋아요 상태 확인
-          getUserLikedProducts(user.user_id)
-            .then(likedData => {
-              const isProdLiked = likedData.like_products.some(p => p.id === productId);
-              setProductLiked(isProdLiked);
-            })
-            .catch(err => console.error('사용자 좋아요 상품 목록 조회 실패(초기화):', err));
+        if (productDataFromApi) {
+          setProduct(productDataFromApi);
+          // 좋아요/브랜드 좋아요 카운트는 productDataFromApi에서 직접 가져옴
+          setProductLikeCount(productDataFromApi.like_count ?? 0);
+          setBrandLikeCount(productDataFromApi.brand_like_count ?? 0);
 
-          // 브랜드 좋아요 상태 확인 (상품에 brand_id가 있을 경우)
-          if (prodData.brand_id) {
-            getUserLikedBrands(user.user_id)
-              .then(likedBrandData => {
-                const isBrLiked = likedBrandData.like_brands.some(b => b.id === prodData.brand_id);
-                setBrandLiked(isBrLiked);
+          // ***** product_view 이벤트 로깅 *****
+          trackEvent(
+            "product_view",
+            { // event_properties
+              product_id: String(productDataFromApi.id),
+              brand_id: productDataFromApi.brand_id ? String(productDataFromApi.brand_id) : null,
+              category_code: productDataFromApi.category_code || null,
+              discount: typeof productDataFromApi.discount === 'number' ? productDataFromApi.discount : 0,
+              discounted_price: typeof productDataFromApi.discounted_price === 'number' ? productDataFromApi.discounted_price : (productDataFromApi.price || 0),
+              price: typeof productDataFromApi.price === 'number' ? productDataFromApi.price : 0,
+              gender: productDataFromApi.gender || null,
+              promotion_id: null, // 현재 프로모션 정보 없으므로 null
+              promotion_action: null,
+            }
+          );
+
+          // 사용자 로그인 상태에 따른 좋아요 정보 초기화
+          if (user && user.user_id) {
+            // 상품 좋아요 상태 확인
+            getUserLikedProducts(user.user_id)
+              .then(likedData => {
+                if (!isMounted) return;
+                const isProdLiked = likedData.like_products.some(p => p.id === productId);
+                setProductLiked(isProdLiked);
               })
-              .catch(err => console.error('사용자 좋아요 브랜드 목록 조회 실패(초기화):', err));
+              .catch(err => {
+                if (isMounted) console.error('사용자 좋아요 상품 목록 조회 실패(초기화):', err);
+              });
+
+            // 브랜드 좋아요 상태 확인
+            if (productDataFromApi.brand_id) {
+              getUserLikedBrands(user.user_id)
+                .then(likedBrandData => {
+                  if (!isMounted) return;
+                  const isBrLiked = likedBrandData.like_brands.some(b => b.id === productDataFromApi.brand_id);
+                  setBrandLiked(isBrLiked);
+                })
+                .catch(err => {
+                  if (isMounted) console.error('사용자 좋아요 브랜드 목록 조회 실패(초기화):', err);
+                });
+            }
+          } else {
+            if (isMounted) {
+              setProductLiked(false);
+              setBrandLiked(false);
+            }
           }
         } else {
-          setProductLiked(false);
-          setBrandLiked(false);
+          if (isMounted) setProduct(null);
         }
       })
       .catch(err => {
-        console.error('상품 불러오기 실패:', err);
-        setProduct(null);
+        if (isMounted) {
+          console.error(`상품 ID(${productId}) 불러오기 실패:`, err);
+          setProduct(null);
+        }
       })
       .finally(() => {
-        setIsLoadingProduct(false);
+        if (isMounted) setIsLoadingProduct(false);
       });
-  }, [productId, user]); // user가 변경 (로그인/아웃)되면 좋아요 상태 다시 확인
 
+      return () => {
+        isMounted = false; // 컴포넌트 언마운트 시 플래그 설정
+      };
+
+  }, [productId, user, trackEvent]); // user 의존성 추가: 로그인 상태 변경 시 좋아요 정보 다시 가져오기 위함
+
+  // --- 좋아요/브랜드 좋아요 토글 핸들러 (useCallback 유지) ---
   const handleToggleProductLike = useCallback(async () => {
     if (!user || !user.user_id) {
       alert('로그인이 필요합니다.');
       return navigate('/login');
     }
-    if (isLikeActionLoading) return;
+    if (isLikeActionLoading || !product) return;
 
     setIsLikeActionLoading(true);
-    const originalProductLiked = productLiked;
-    const originalProductLikeCount = productLikeCount;
+    const originalIsLiked = productLiked;
+    const newIsLiked = !originalIsLiked;
 
-    // Optimistic update
-    setProductLiked(!originalProductLiked);
-    setProductLikeCount(prev => prev + (!originalProductLiked ? 1 : -1));
+    setProductLiked(newIsLiked);
+    setProductLikeCount(prev => prev + (newIsLiked ? 1 : -1));
 
     try {
-      if (!originalProductLiked) { // 현재 좋아요 X -> 좋아요 실행
+      if (newIsLiked) {
         await likeProduct(productId, user.user_id);
-      } else { // 현재 좋아요 O -> 좋아요 취소 실행
+      } else {
         await unlikeProduct(productId, user.user_id);
       }
+      // 좋아요/취소 성공 시 로그 (선택적)
+      trackEvent("like", {
+          product_id: String(productId),
+          brand_id: product.brand_id ? String(product.brand_id) : null,
+          product_like: newIsLiked, // 현재 상품 좋아요 상태
+          brand_like: brandLiked,   // 현재 브랜드 좋아요 상태 (이 이벤트가 상품 좋아요에만 해당한다면 null 또는 생략)
+          // target_type: 'product', is_like_action: newIsLiked (스키마에 따름)
+      });
     } catch (err) {
       console.error('상품 좋아요 처리 실패:', err.response?.data || err.message);
-      alert(`상품 좋아요 처리에 실패했습니다: ${err.response?.data?.detail || '다시 시도해주세요.'}`);
-      // Rollback on error
-      setProductLiked(originalProductLiked);
-      setProductLikeCount(originalProductLikeCount);
+      alert(`상품 좋아요 처리에 실패했습니다.`);
+      setProductLiked(originalIsLiked); // 롤백
+      setProductLikeCount(prev => prev + (originalIsLiked ? 1 : -1)); // 롤백
     } finally {
       setIsLikeActionLoading(false);
     }
-  }, [user, productId, productLiked, productLikeCount, isLikeActionLoading, navigate]);
+  }, [user, productId, product, productLiked, brandLiked, isLikeActionLoading, navigate, trackEvent]);
 
   const handleToggleBrandLike = useCallback(async () => {
     if (!user || !user.user_id) {
       alert('로그인이 필요합니다.');
       return navigate('/login');
     }
-    if (!product?.brand_id) {
-        console.warn('브랜드 ID가 없어 브랜드 좋아요를 처리할 수 없습니다.');
-        return;
-    }
-    if (isLikeActionLoading) return;
+    if (!product?.brand_id || isLikeActionLoading) return;
 
     setIsLikeActionLoading(true);
-    const originalBrandLiked = brandLiked;
-    const originalBrandLikeCount = brandLikeCount;
+    const originalIsBrandLiked = brandLiked;
+    const newIsBrandLiked = !originalIsBrandLiked;
 
-    // Optimistic update
-    setBrandLiked(!originalBrandLiked);
-    setBrandLikeCount(prev => prev + (!originalBrandLiked ? 1 : -1));
+    setBrandLiked(newIsBrandLiked);
+    setBrandLikeCount(prev => prev + (newIsBrandLiked ? 1 : -1));
 
     try {
-      if (!originalBrandLiked) {
+      if (newIsBrandLiked) {
         await likeBrand(product.brand_id, user.user_id);
       } else {
         await unlikeBrand(product.brand_id, user.user_id);
       }
+      // 브랜드 좋아요/취소 성공 시 로그 (선택적)
+      trackEvent("like", {
+          product_id: String(productId), // 이 브랜드가 속한 (현재 보고있는) 상품 ID
+          brand_id: product.brand_id ? String(product.brand_id) : null,
+          product_like: productLiked, // 현재 상품 좋아요 상태
+          brand_like: newIsBrandLiked,  // 현재 브랜드 좋아요 상태
+          // target_type: 'brand', is_like_action: newIsBrandLiked (스키마에 따름)
+      });
     } catch (err) {
       console.error('브랜드 좋아요 처리 실패:', err.response?.data || err.message);
-      alert(`브랜드 좋아요 처리에 실패했습니다: ${err.response?.data?.detail || '다시 시도해주세요.'}`);
-      // Rollback on error
-      setBrandLiked(originalBrandLiked);
-      setBrandLikeCount(originalBrandLikeCount);
+      alert(`브랜드 좋아요 처리에 실패했습니다.`);
+      setBrandLiked(originalIsBrandLiked); // 롤백
+      setBrandLikeCount(prev => prev + (originalIsBrandLiked ? 1 : -1)); // 롤백
     } finally {
       setIsLikeActionLoading(false);
     }
-  }, [user, product?.brand_id, brandLiked, brandLikeCount, isLikeActionLoading, navigate]);
-
+  }, [user, product, productId, productLiked, brandLiked, isLikeActionLoading, navigate, trackEvent]);
 
   // --- 기존 핸들러들 (수정 없음 또는 최소 수정) ---
   const handleAddToCart = async () => {
-    if (!user) { alert('로그인이 필요합니다.'); return navigate('/login'); }
+    if (!user || !user.user_id) {
+      alert('로그인이 필요합니다.');
+      return navigate('/login');
+    }
+    if (!product) return;
     try {
-      await addCartItem(user.user_id, productId, quantity); // productId 사용
+      await addCartItem(user.user_id, productId, quantity);
+      // 장바구니 담기 성공 시 로그
+      trackEvent("add_to_cart", {
+          product_id: String(productId),
+          quantity: quantity,
+          discounted_price: product.discounted_price || product.price,
+      });
       if (window.confirm('장바구니에 담겼습니다. 이동할까요?')) navigate('/cart');
     } catch (err) {
       console.error('장바구니 추가 실패', err);

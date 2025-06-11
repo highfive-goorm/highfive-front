@@ -1,7 +1,6 @@
 // src/components/CartSummary.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAnalytics } from '../hooks/useAnalytics';
 
 /**
  * @param {Object[]} items         // [{ product_id, quantity, price, discounted_price, discount, name, img_url }]
@@ -9,7 +8,6 @@ import { useAnalytics } from '../hooks/useAnalytics';
  */
 export default function CartSummary({ items, loading }) {
   const navigate = useNavigate();
-  const { track } = useAnalytics();
 
   const subtotal = items.reduce(
     (sum, i) => sum + i.price * i.quantity,
@@ -28,11 +26,6 @@ export default function CartSummary({ items, loading }) {
 
   const handleCheckout = () => {
     if (loading || items.length === 0) return;
-
-    track('checkout', {
-      product_ids: items.map(i => i.product_id),
-      total,
-    });
 
     navigate('/checkout', {
       state: {

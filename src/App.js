@@ -12,6 +12,8 @@ import Footer from './components/Footer';
 import Slider from './components/Slider';
 import PrivateRoute from './components/PrivateRoute';
 import ProductList from './components/ProductList';
+import ProductFilter from './components/ProductFilter';
+
 import Recommend from './components/Recommend';
 
 import LoginPage from './pages/Login';
@@ -40,12 +42,14 @@ import PayApprove from './pages/pay/PayApprove';
 import PayCancel from './pages/pay/PayCancel';
 import PayFail from './pages/pay/PayFail';
 
+import BrandProductsPage from './pages/BrandProductsPage'; // BrandProductsPage import
+
 import { useProducts } from './hooks/useProducts';
 
 import { useAuth } from './context/AuthContext';
 
 const HomePage = () => {
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedFilters, setSelectedFilters] = useState({ gender: '', category: '' });  
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 15;
 
@@ -55,7 +59,19 @@ const HomePage = () => {
     total: totalItems,
     loading,
     error,
-  } = useProducts('', currentPage, productsPerPage, selectedCategory);
+  } = useProducts('', currentPage, productsPerPage, selectedFilters);
+
+  const handleFilterChange = (newFilters) => {
+    setSelectedFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    // 페이지 변경 시에도 URL 파라미터를 업데이트할 수 있지만,
+    // 메인 페이지의 경우 URL에 필터/페이지 정보를 항상 노출할 필요는 없을 수 있음 (선택 사항)
+  };
 
   return (
     <>
@@ -63,19 +79,23 @@ const HomePage = () => {
       <Main>
         <Recommend element="section nexon" title="추천 서비스"/>
         <Slider element="nexon" title="광고 배너"/>
+        <div className="products-section-header mb-4 mt-4"> {/* 필터와 제목을 묶는 div (선택적) */}
+          <h2 className="text-2xl font-bold text-center mb-3">상품 리스트</h2> {/* 제목 스타일링 */}
+          <ProductFilter
+            selectedFilters={selectedFilters}
+            onFilterChange={handleFilterChange}
+          />
+        </div>
         <ProductList
           products={error ? [] : products}
           totalItems={totalItems}
           loading={loading}
-          selectedCategory={selectedCategory}
-          onFilterChange={cat => {
-            setSelectedCategory(cat);
-            setCurrentPage(1);
-          }}
+          currentFilters={selectedFilters} // ProductItem에 전달할 전체 필터 객체
+          currentQuery={null}
           currentPage={currentPage}
           productsPerPage={productsPerPage}
           pageButtonCount={5}
-          onPageChange={setCurrentPage}
+          onPageChange={handlePageChange}
         />
       </Main>
     </>
@@ -183,6 +203,9 @@ const App = () => {
         
         {/* 메인 */}
         <Route path="/" element={<HomePage />} />
+
+        {/* 브랜드별 상품 목록 페이지 라우트 */}
+        <Route path="/brand/:id" element={<BrandProductsPage />} />
 
         {/* 공개 페이지 */}
         <Route path="/login"  element={<LoginPage />} />
