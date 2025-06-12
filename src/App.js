@@ -1,20 +1,13 @@
 // src/App.js
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 
 import './assets/css/reset.css';
 import './assets/css/style.css';
 
-import SearchBar from './components/SearchBar';
 import Header from './components/Header';
-import Main from './components/Main';
 import Footer from './components/Footer';
-import Slider from './components/Slider';
 import PrivateRoute from './components/PrivateRoute';
-import ProductList from './components/ProductList';
-import ProductFilter from './components/ProductFilter';
-
-import Recommend from './components/Recommend';
 
 import LoginPage from './pages/Login';
 import Signup from './pages/Signup';
@@ -23,6 +16,7 @@ import Search from './pages/Search';
 import CartPage from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Alerts from './pages/Alerts';
+import HomePage from './pages/HomePage'; // HomePage import
 
 import MyPageHome    from './pages/mypage/Home';
 import ProfilePage   from './pages/mypage/Profile';
@@ -44,63 +38,8 @@ import PayFail from './pages/pay/PayFail';
 
 import BrandProductsPage from './pages/BrandProductsPage'; // BrandProductsPage import
 
-import { useProducts } from './hooks/useProducts';
-
 import { useAuth } from './context/AuthContext';
-
-const HomePage = () => {
-  const [selectedFilters, setSelectedFilters] = useState({ gender: '', category: '' });  
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 15;
-
-  // 전체 상품 조회: 페이지네이션 포함
-  const {
-    items: products,
-    total: totalItems,
-    loading,
-    error,
-  } = useProducts('', currentPage, productsPerPage, selectedFilters);
-
-  const handleFilterChange = (newFilters) => {
-    setSelectedFilters(newFilters);
-    setCurrentPage(1);
-  };
-
-  // 페이지 변경 핸들러
-  const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
-    // 페이지 변경 시에도 URL 파라미터를 업데이트할 수 있지만,
-    // 메인 페이지의 경우 URL에 필터/페이지 정보를 항상 노출할 필요는 없을 수 있음 (선택 사항)
-  };
-
-  return (
-    <>
-      <SearchBar />
-      <Main>
-        <Recommend element="section nexon" title="추천 서비스"/>
-        <Slider element="nexon" title="광고 배너"/>
-        <div className="products-section-header mb-4 mt-4"> {/* 필터와 제목을 묶는 div (선택적) */}
-          <h2 className="text-2xl font-bold text-center mb-3">상품 리스트</h2> {/* 제목 스타일링 */}
-          <ProductFilter
-            selectedFilters={selectedFilters}
-            onFilterChange={handleFilterChange}
-          />
-        </div>
-        <ProductList
-          products={error ? [] : products}
-          totalItems={totalItems}
-          loading={loading}
-          currentFilters={selectedFilters} // ProductItem에 전달할 전체 필터 객체
-          currentQuery={null}
-          currentPage={currentPage}
-          productsPerPage={productsPerPage}
-          pageButtonCount={5}
-          onPageChange={handlePageChange}
-        />
-      </Main>
-    </>
-  );
-};
+import { setPreviousPath } from './utils/trackingUtils'; // 이전 경로 저장 함수
 
 const App = () => {
   const location = useLocation();
@@ -112,6 +51,19 @@ const App = () => {
     return adminId ? children : <Navigate to="/admin" replace />;
   };
   const { user } = useAuth();
+
+  const previousLocationRef = useRef(location);
+
+  // SPA 내부 라우팅 시 이전 경로 저장
+  useEffect(() => {
+    // 이전 location 값을 사용하여 previousPath를 설정
+    // 단, 현재 location과 이전 location이 다를 때만 업데이트 (최초 로드 시 불필요한 저장 방지)
+    if (previousLocationRef.current.pathname !== location.pathname || previousLocationRef.current.search !== location.search) {
+      setPreviousPath(previousLocationRef.current.pathname + previousLocationRef.current.search);
+    }
+    // 현재 location을 다음번 비교를 위해 ref에 저장
+    previousLocationRef.current = location;
+  }, [location]);
 
   return (
     <>

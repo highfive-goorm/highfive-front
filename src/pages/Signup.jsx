@@ -1,7 +1,6 @@
 // src/pages/Signup.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { signupRequest } from '../api/auth';
 import api from '../api/index';
 
@@ -11,6 +10,7 @@ export default function Signup() {
   const [form, setForm] = useState({
     account: '',
     password: '',
+    name: '',
     age: '',
     gender: '',
     address: '',
@@ -27,6 +27,10 @@ export default function Signup() {
     }
     if (form.password.length < 6) {
       setErrorMsg('비밀번호는 최소 6자 이상이어야 합니다.');
+      return false;
+    }
+    if (!form.name.trim()) {
+      setErrorMsg('이름을 입력해주세요.');
       return false;
     }
     if (!form.age) {
@@ -62,17 +66,10 @@ export default function Signup() {
     try {
       let exists;
 
-      if (process.env.REACT_APP_USE_STUB === 'true') {
-        const users = await axios
-        .get('https://68144d36225ff1af162871b7.mockapi.io/signup')
-        .then(res => res.data);
-        exists = users.some(u => u.account === form.account);  
-      } else {
-        const resp = await api.post('/user/check-duplicate', { 
-          account: form.account,
-        });
-        exists = resp.data.exists;
-      }      
+      const resp = await api.post('/user/check-duplicate', { 
+        account: form.account,
+      });
+      exists = resp.data.exists;
 
       setCheckResult(
         exists ? '이미 사용 중인 아이디입니다.' : '사용 가능한 아이디입니다.'
@@ -154,6 +151,18 @@ export default function Signup() {
               />
             </div>
 
+            {/* 이름 */}
+            <div>
+              <label className="block mb-1 font-medium">이름</label>
+              <input
+                type="text"
+                name="name" // name 속성 추가
+                value={form.name}
+                onChange={handleChange}
+                placeholder="이름"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
             {/* 나이 */}
             <div>
               <label className="block mb-1 font-medium">나이</label>

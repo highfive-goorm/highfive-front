@@ -21,7 +21,7 @@ export default function CartSummary({ items, loading }) {
   const total = subtotal - discount + shipping;
   const rate =
     discount > 0
-      ? Math.floor((discount / (subtotal + discount)) * 100)
+      ? Math.floor((discount / (subtotal)) * 100)
       : 0;
 
   const handleCheckout = () => {

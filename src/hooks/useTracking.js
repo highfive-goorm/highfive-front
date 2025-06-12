@@ -1,25 +1,28 @@
 // src/hooks/useTracking.js
 import { useCallback } from 'react';
-import { useSession } from '../context/SessionContext';
-import { useAuth } from '../context/AuthContext'; // 수정된 AuthContext 사용
-import { trackEventApi } from '../api/tracking';
+import { useSession } from '../context/SessionContext'; // SessionContext에서 anonymous_id와 session_id를 가져옴
+import { useAuth } from '../context/AuthContext';
+import { trackEventApi } from '../api/tracking'; // 백엔드로 로그를 보내는 API 함수
+import { v4 as uuidv4 } from 'uuid';
+import { getLandingUrl, getPreviousPath } from '../utils/trackingUtils'; // landing_url 및 previous_path 가져오기
+// getAnonymousId는 SessionContext를 통해 간접적으로 사용되거나, SessionContext가 업데이트되어야 함
 
 export function useTracking() {
   const { anonymous_id, session_id } = useSession();
-  const { user, isLoading: isAuthLoading } = useAuth(); // AuthContext에서 user와 로딩 상태 가져오기
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   const trackEvent = useCallback(
-    async (eventType, eventProperties = {}, additionalFields = {}) => {
-      // 인증 정보 로딩 중에는 user_id가 확정되지 않았을 수 있으므로, 로깅을 지연하거나 user_id 없이 보낼 수 있음
+    async (eventType, properties = {}) => { // eventProperties를 properties로 변경 (스키마와 일치)
       if (isAuthLoading) {
         // console.log('[Tracking Hook] Auth data is loading, event tracking deferred or skipped.');
-        // 필요하다면 로깅을 큐에 넣었다가 나중에 보내는 로직 추가 가능
-        // 또는, user_id 없이 일단 보내고, 나중에 user_id가 확정되면 별도 이벤트로 보낼 수도 있음
-        // 가장 간단하게는, user_id가 필요한 이벤트는 isAuthLoading이 false일 때만 보내도록 호출부에서 제어
+        return; // 인증 정보 로딩 중에는 트래킹을 지연하거나 스킵할 수 있습니다.
       }
 
       if (!anonymous_id || !session_id) {
-        console.warn('Tracking: anonymous_id or session_id is missing. Log will not be sent.');
+        console.warn(
+          'Tracking: anonymous_id or session_id from useSession is missing. Log will not be sent.',
+          { anonymous_id, session_id }
+        );
         return;
       }
 
@@ -28,37 +31,32 @@ export function useTracking() {
         return;
       }
 
-      const commonEventData = {
-        anonymous_id,
-        session_id,
-        // user 객체가 있고, 그 안에 user_id 필드가 있다고 가정. 실제 필드명에 맞춰야 함.
+      // 새 스키마에 따른 로그 데이터 구성
+      const logData = {
+        event_id: uuidv4(),
+        anonymous_id: anonymous_id, // SessionContext에서 제공 (SessionContext가 trackingUtils.getAnonymousId를 사용하도록 업데이트 필요)
         user_id: user ? user.user_id : null,
+        session_id: session_id,     // SessionContext에서 제공
         event_type: eventType,
         event_timestamp: new Date().toISOString(),
-        // referrer_url, utm_parameters 등은 필요시 additionalFields로 받거나,
-        // 여기서 document.referrer, window.location.search 등을 활용해 채울 수 있음
-      };
-
-      const finalEventData = {
-        ...commonEventData,
-        event_properties: Object.keys(eventProperties).length > 0 ? eventProperties : null,
-        ...additionalFields,
+        // utm_params: getUtmParams(), // 추후 확장 가능
+        page_url: window.location.href,
+        page_view: document.title, // 필요시 컴포넌트에서 더 구체적인 페이지 제목 전달 가능
+        page_referrer: getPreviousPath() || document.referrer || null, // SPA 내부 이전 경로 우선 사용
+        landing_url: getLandingUrl(), // 유틸리티 함수로 가져옴
+        event_properties: Object.keys(properties).length > 0 ? properties : null, // 이벤트별 속성 (키 이름 변경)
       };
 
       try {
-        // console.log('[Tracking Hook] Sending event:', JSON.stringify(finalEventData, null, 2)); // 디버깅용
-        const response = await trackEventApi(finalEventData);
-        // if (response.success) {
-        //   console.log('[Tracking Hook] Event logged:', response.stub ? '(Stubbed)' : finalEventData.event_type);
-        // } else {
-        //   console.warn('[Tracking Hook] Failed to log event:', response.message, finalEventData.event_type);
-        // }
+        // console.log('[Tracking Hook] Sending event:', JSON.stringify(logData, null, 2));
+        await trackEventApi(logData);
+        // console.log('[Tracking Hook] Event logged:', logData.event_type);
       } catch (error) {
-        console.error('[Tracking Hook] Unexpected error during trackEventApi call:', error);
+        console.error('[Tracking Hook] Error sending tracking event:', error, logData);
       }
     },
-    [anonymous_id, session_id, user, isAuthLoading] // 의존성 배열에 isAuthLoading 추가
+    [anonymous_id, session_id, user, isAuthLoading]
   );
 
-  return { trackEvent, isAuthReady: !isAuthLoading }; // isAuthReady 같은 플래그 반환 가능
+  return { trackEvent, isAuthReady: !isAuthLoading };
 }

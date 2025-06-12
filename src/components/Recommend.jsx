@@ -34,7 +34,7 @@ const Recommend = ({ element, title }) => {
         {products.map(product => (
           <article className="card" key={product.id}>
             <figure className="card__header">
-              <Link to={`/product/${product.id}`}>
+              <Link to={`/product/${product.id}?from=recommend`}>
                 <img src={product.img_url} alt={product.name} />
               </Link>
             </figure>

@@ -23,9 +23,8 @@ export default function OrdersPage() {
       ) : (
         <ul className="space-y-6">
           {orders.map(o => (
-            <li key={o.id} className="p-4 border rounded-lg space-y-3">
+            <li key={o._id} className="p-4 border rounded-lg space-y-3">
               <div className="flex justify-between items-center">
-                <span className="font-medium">주문 번호: {o.id}</span>
                 <span className="text-sm text-gray-500">
                   {o.created_at}
                 </span>
@@ -55,7 +54,7 @@ export default function OrdersPage() {
               {/* 환불 버튼 */}
               <div className="text-right">
                 <button
-                  onClick={() => cancel(o.id)}
+                  onClick={() => cancel(o._id)}
                   disabled={o.status === 'cancelled'}
                   className={`px-4 py-1 text-sm rounded
                     ${o.status === 'cancelled'

@@ -1,62 +1,53 @@
 // src/api/orders.js
 import api from './index';
-import axios from 'axios';
-
-const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
-const STUB_BASE_URL = 'https://6822d576b342dce8004f85a8.mockapi.io';
-
-/** GET /order/{user_id} */
-export function fetchOrders(user_id) {
-  if (USE_STUB) {
-    return axios
-      .get(`${STUB_BASE_URL}/order`, { params: { user_id } })
-      .then(response => response.data);
-  }
-  return api
-    .get(`/order/${user_id}`)
-    .then(response => response.data);
-}
 
 /**
- * 주문 상태 업데이트
- * PUT /order/{order_id}
- * 바디: { status: string }
+ * 새로운 주문 생성
+ * @param {object} orderData - OrderCreate 스키마
+ * @param {string} orderData.user_id
+ * @param {string} orderData.status
+ * @param {Array<object>} orderData.order_items
+ * @param {boolean} orderData.is_from_cart
+ * @param {number} orderData.total_price
+ * @returns {Promise<object>} 생성된 주문 정보 (OrderInDB 스키마)
  */
-export function updateOrderStatus(order_id, status) {
-  if (USE_STUB) {
-    return axios
-      .put(`${STUB_BASE_URL}/order/${order_id}`, { status })
-      .then(response => response.data);
+export const createOrder = async (orderData) => {
+  try {
+    const response = await api.post('/order', orderData); // 엔드포인트 변경
+    return response.data;
+  } catch (error) {
+    console.error('Error creating order:', error.response?.data || error.message);
+    throw error;
   }
-  return api
-    .put(`/order/${order_id}`, { status })
-    .then(response => response.data);
-}
+};
 
 /**
- * 주문 생성
- * POST /order 또는 /orders
- * @param {string}   user_id
- * @param {Object[]} items          // [{ product_id, quantity, price }, …]
- * @param {number}   total_price
- * @param {boolean}  is_from_cart
- * @param {string}   status         // 기본 'paid'
+ * 특정 사용자의 주문 목록 조회
+ * @param {string} userId - 사용자 ID
+ * @returns {Promise<Array<object>>} 주문 목록 (List[OrderInDB])
  */
-export function createOrder({ user_id, items, total_price, is_from_cart, status = 'paid', }) {
-  const payload = {
-    user_id,
-    order_items: items.map(item => ({
-      product_id: item.product_id,
-      quantity: item.quantity,
-      discounted_price: item.price,
-    })),
-    total_price,
-    is_from_cart,
-    status,
-  };
-
-  if (USE_STUB) {
-    return axios.post(`${STUB_BASE_URL}/order`, payload).then(r => r.data);
+export const fetchOrders = async (userId) => {
+  try {
+    const response = await api.get(`/order/user/${userId}`); // 엔드포인트 변경
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching orders by user ID:', error.response?.data || error.message);
+    throw error;
   }
-  return api.post('/order', payload).then(r => r.data);
-}
+};
+
+/**
+ * 특정 주문 수정 (예: 상태 변경)
+ * @param {string} orderId - 주문 ID (_id의 문자열 값)
+ * @param {object} updateData - OrderUpdate 스키마 (예: { status: "shipped" })
+ * @returns {Promise<object>} 수정된 주문 정보
+ */
+export const updateOrderStatus = async (orderId, updateData) => {
+  try {
+    const response = await api.put(`/order/${orderId}`, updateData); // 엔드포인트 변경
+    return response.data;
+  } catch (error) {
+    console.error('Error updating order:', error.response?.data || error.message);
+    throw error;
+  }
+};

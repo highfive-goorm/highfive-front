@@ -1,6 +1,7 @@
 // src/context/SessionContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getSessionId, refreshSession, clearSession as clearSessionStorage, getAnonymousId } from '../utils/session'; // getAnonymousId 추가
+import { getSessionId, refreshSession, clearSession as clearSessionStorage } from '../utils/session';
+import { getAnonymousId } from '../utils/trackingUtils'; // getAnonymousId 경로 변경
 
 const SessionContext = createContext({
   session_id: null,
@@ -10,7 +11,7 @@ const SessionContext = createContext({
 
 export function SessionProvider({ children }) {
   const [session_id, setSessionId] = useState(() => getSessionId());
-  const [anonymous_id, setAnonymousId] = useState(() => getAnonymousId()); // anonymous_id 상태 추가
+  const [anonymous_id] = useState(() => getAnonymousId()); // anonymous_id 상태 추가
 
   const touchSession = useCallback(() => { // 이름 변경
     const sid = refreshSession();
