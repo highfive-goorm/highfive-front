@@ -2,32 +2,22 @@
 import axios from 'axios';
 import { getSessionId } from '../utils/session';
 import { refreshAccessToken } from './auth';
-import { getApiBaseUrl } from '../config'; 
+// import { getApiBaseUrl } from '../config'; // baseURL을 직접 설정하므로 더 이상 필요하지 않음
 
 const api = axios.create({
+  // 리버스 프록시를 통해 /api 로 요청을 보낸다고 가정
+  baseURL: '/api', 
   headers: { 'Content-Type': 'application/json' },
 });
 
 // 요청마다 accessToken & SessionId 헤더 자동 삽입
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('accessToken');
+  const token = sessionStorage.getItem('accessToken'); // localStorage -> sessionStorage
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   config.headers['X-Session-Id'] = getSessionId();
 
-  if (config.url && !config.url.startsWith('http://') && !config.url.startsWith('https://')) {
-    const baseUrl = getApiBaseUrl();
-    if (baseUrl) { // baseUrl이 정상적으로 로드되었을 경우
-        config.url = baseUrl + (config.url.startsWith('/') ? config.url : '/' + config.url);
-    } else {
-        // baseUrl을 아직 가져오지 못했거나 문제가 있는 경우에 대한 처리 (선택 사항)
-        // 예를 들어, 에러를 던지거나 기본값을 사용하도록 할 수 있습니다.
-        // 현재 로직에서는 loadAppConfig가 먼저 완료되므로 이 경우는 드뭅니다.
-        console.warn('API Base URL not available yet or invalid. Request might fail for:', config.url);
-    }
-  }
-  
   return config;
 });
 

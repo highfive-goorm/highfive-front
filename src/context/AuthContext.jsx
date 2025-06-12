@@ -1,8 +1,6 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { jwtDecode } from 'jwt-decode';
-// getSessionId, clearSessionStorage는 SessionContext에서 관리하므로 여기서 직접 호출할 필요는 없어 보입니다.
-// import { getSessionId, clearSession as clearSessionStorage } from '../utils/session';
 import { refreshAccessToken } from '../api/auth';
 
 const AuthContext = createContext({
@@ -19,15 +17,16 @@ export function AuthProvider({ children }) {
   // 컴포넌트 마운트 시 세션 스토리지에서 토큰 확인 및 사용자 정보 설정
   useEffect(() => {
     const initializeAuth = async () => {
+      setIsLoading(true); // 로딩 시작
       const accessToken = sessionStorage.getItem('accessToken');
       if (accessToken) {
         try {
           const decodedToken = jwtDecode(accessToken);
           if (decodedToken.exp * 1000 > Date.now()) {
-            setUser({ user_id: decodedToken.user_id }); // 또는 필요한 다른 정보
+            // 토큰이 유효하면 사용자 정보 설정
+            setUser({ user_id: decodedToken.user_id }); // 토큰에서 user_id 추출
           } else {
-            // Access 토큰이 만료되었지만, Refresh 토큰이 있을 수 있음
-            // 애플리케이션 시작 시 자동 리프레시 시도 (선택적)
+            // Access 토큰 만료, 리프레시 시도
             try {
               const newAccess = await refreshAccessToken(); // refreshAccessToken은 sessionStorage 사용하도록 수정 필요
               const { user_id: newUserId } = jwtDecode(newAccess);
@@ -36,6 +35,7 @@ export function AuthProvider({ children }) {
               console.warn("Failed to refresh token on init:", refreshError);
               sessionStorage.removeItem('accessToken');
               sessionStorage.removeItem('refreshToken');
+              sessionStorage.removeItem('user'); // 사용자 정보도 제거
               setUser(null);
             }
           }
@@ -43,6 +43,7 @@ export function AuthProvider({ children }) {
           console.error("Error decoding token on init:", error);
           sessionStorage.removeItem('accessToken');
           sessionStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('user'); // 사용자 정보도 제거
           setUser(null);
         }
       }
@@ -56,24 +57,26 @@ export function AuthProvider({ children }) {
     sessionStorage.setItem('accessToken', access);
     sessionStorage.setItem('refreshToken', refresh);
     try {
-      const { user_id } = jwtDecode(access); // 또는 필요한 다른 사용자 정보
-      setUser({ user_id });
-      // getSessionId(); // 이 부분은 SessionContext에서 자동으로 처리될 것이므로 여기서 호출 불필요
+      const decodedToken = jwtDecode(access);
+      const userData = { user_id: decodedToken.user_id }; // 토큰에서 user_id 추출
+      setUser(userData);
+      sessionStorage.setItem('user', JSON.stringify(userData)); // 사용자 정보도 sessionStorage에 저장
     } catch (error) {
         console.error("Error decoding token on login:", error);
         // 로그인 실패 처리 (예: setUser(null), 토큰 제거 등)
         sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('refreshToken');
+        sessionStorage.removeItem('user');
         setUser(null);
     }
   }, []);
 
   const logout = useCallback(() => {
+    // api.post('/auth/logout'); // 실제 백엔드 로그아웃 API 호출 (선택적)
     sessionStorage.removeItem('accessToken');
     sessionStorage.removeItem('refreshToken');
-    // clearSessionStorage(); // SessionContext의 clearSession이 호출되도록 유도하거나, 여기서 직접 호출
+    sessionStorage.removeItem('user'); // 로그아웃 시 사용자 정보 제거
     setUser(null);
-    // window.location.replace('/'); // 페이지 강제 이동보다는 라우터의 navigate 사용 권장
   }, []);
 
   // Access 토큰 자동 갱신 로직 (기존 로직 유지하되, sessionStorage 사용)
@@ -111,13 +114,14 @@ export function AuthProvider({ children }) {
             }
           }, timeoutDuration);
         } else if (expiresIn <= 0) { // 이미 만료되었지만 아직 로그아웃 안된 경우
-            console.warn('Access token already expired, attempting refresh or logout.');
+            console.warn('Access token already expired, attempting refresh.');
             try {
                 const newAccess = await refreshAccessToken();
                 const { user_id: newUserId } = jwtDecode(newAccess);
                 setUser({ user_id: newUserId });
                 scheduleRefresh();
-            } catch (e) {
+            } catch (refreshErrorOnExpiry) {
+                console.error('Failed to refresh expired token, logging out:', refreshErrorOnExpiry);
                 logout();
             }
         }

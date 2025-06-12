@@ -28,9 +28,8 @@ export function useOrders() {
     reload();
   }, [reload]);
 
-  /** 주문 환불(→status='cancelled') */
   const cancel = order_id =>
-    updateOrderStatus(order_id, 'cancelled').then(() => reload());
+    updateOrderStatus(order_id, { status: 'cancelled' }).then(() => reload());
 
   return { orders, cancel };
 }

@@ -1,5 +1,5 @@
 // src/pages/Cart.jsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCart } from '../hooks/useCart';
 import CartItem from '../components/CartItem';
 import CartSummary from '../components/CartSummary';
@@ -7,6 +7,15 @@ import CartSummary from '../components/CartSummary';
 export default function CartPage() {
   const { items, loading, error, changeQuantity, removeItem } = useCart();
 
+  useEffect(() => {
+    document.title = '장바구니 | 하이파이브';
+
+    // 컴포넌트가 언마운트될 때 실행될 클린업 함수
+    return () => {
+      document.title = '하이파이브'; // 기본 제목으로 복원
+    };
+  }, []);
+  
   return (
     <main className="max-w-screen-lg mx-auto px-4 py-8">
       <h1 className="text-2xl font-semibold mb-6">장바구니</h1>

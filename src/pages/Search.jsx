@@ -111,6 +111,20 @@ export default function Search() {
   }, [loading, error, query, totalItems, selectedFilters, trackEvent]);
   // 의존성 배열에 totalItems, selectedFilters 등을 포함하여 이 값들이 변경될 때마다 로깅 조건 재확인
 
+  // 페이지 제목 설정
+  useEffect(() => {
+    if (query) {
+      document.title = `${query} | 하이파이브`;
+    } else {
+      document.title = '검색 | 하이파이브';
+    }
+
+    // 컴포넌트가 언마운트될 때 실행될 클린업 함수
+    return () => {
+      document.title = '하이파이브'; // 기본 제목으로 복원
+    };
+  }, [query]);
+
 
   return (
     <div className="search-page">
@@ -123,7 +137,6 @@ export default function Search() {
             <p className="text-center text-gray-500 mt-4">검색어를 입력해주세요.</p>
         )}
       </div>
-
       <ProductFilter
         selectedFilters={selectedFilters}
         onFilterChange={handleFilterChange}
