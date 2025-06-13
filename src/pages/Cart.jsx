@@ -22,9 +22,7 @@ export default function CartPage() {
 
       {loading ? (
         <p>장바구니를 불러오는 중…</p>
-      ) : error ? (
-        <p className="text-red-600">{error}</p>
-      ) : items.length === 0 ? (
+      ) : error || items.length === 0 ? ( // 에러가 있거나 아이템이 없을 경우 "비어 있습니다" 표시
         <p>장바구니가 비어 있습니다.</p>
       ) : (
         <div className="md:flex md:space-x-6">

@@ -5,6 +5,7 @@ import api from '../api'; // axios 인스턴스
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { requestKakaoPay } from '../api/kakaopay';
+import { useTracking } from '../hooks/useTracking';
 
 // 스텁 모드 여부
 const USE_STUB = process.env.REACT_APP_USE_STUB === 'true';
@@ -15,6 +16,7 @@ export default function Checkout() {
   const { items = [], is_from_cart = false } = useLocation().state || {};
   const { user } = useAuth();
   const [address, setAddress] = useState('');
+  const { trackEvent } = useTracking();
 
   // 유저 주소 불러오기
   useEffect(() => {
@@ -49,14 +51,21 @@ export default function Checkout() {
 
   const handlePayment = async () => {
     try {
-      // 결제 흐름 플래그 및 주문 정보 저장
-      sessionStorage.setItem('is_from_cart', String(is_from_cart));
-      sessionStorage.setItem('order_items', JSON.stringify(items));
-      sessionStorage.setItem('total_price', total);
+      const res = await requestKakaoPay(items, user, is_from_cart); 
+      if (res.order_id) sessionStorage.setItem('current_order_id', res.order_id);
+      sessionStorage.setItem('order_items', JSON.stringify(items)); // 주문 아이템 저장
+      sessionStorage.setItem('total_price', String(total)); // 총액 저장
 
-      const res = await requestKakaoPay(items, user);
-      sessionStorage.setItem('kakao_tid', res.tid); // 승인 시 사용
-      sessionStorage.setItem('kakao_user_id', user?.user_id || 'guest');
+      await trackEvent('order', {
+        order_items: items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          discounted_price: item.discounted_price,
+          // name: item.name, // 필요하다면 상품명도 포함
+        })),
+        total_price: total, // 최종 결제 예상 금액
+        order_id: res.order_id, // 주문 ID
+      });
 
       window.location.href = res.next_redirect_pc_url;
     } catch (err) {

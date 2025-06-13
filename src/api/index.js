@@ -2,7 +2,6 @@
 import axios from 'axios';
 import { getSessionId } from '../utils/session';
 import { refreshAccessToken } from './auth';
-// import { getApiBaseUrl } from '../config'; // baseURL을 직접 설정하므로 더 이상 필요하지 않음
 
 const api = axios.create({
   // 리버스 프록시를 통해 /api 로 요청을 보낸다고 가정
