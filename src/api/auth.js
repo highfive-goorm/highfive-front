@@ -1,14 +1,11 @@
 // src/api/auth.js
 import api from './index';
-import axios from 'axios';
-
 
 /**
  * 로그인 요청
  * - 실제 모드: POST /user/login 으로 { access, refresh } 반환
  */
 export async function loginRequest(account, password) {
-  // POST /user/login { account, password } → { access, refresh }
   const res = await api.post('/user/login', { account, password });
   return res.data;
 }

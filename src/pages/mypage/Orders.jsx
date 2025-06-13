@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link }      from 'react-router-dom';
 import { useOrders } from '../../hooks/useOrders';
+import { useTracking } from '../../hooks/useTracking'; // 트래킹 훅 추가
 
 // status 코드 → 레이블 매핑
 const STATUS_LABEL = {
@@ -13,16 +14,27 @@ const STATUS_LABEL = {
 
 export default function OrdersPage() {
   const { orders, cancel } = useOrders();
+  const { trackEvent } = useTracking(); // 트래킹 훅 사용
+  const visibleOrders = orders.filter(order => order.status !== 'pending_payment');
+
+  const handleRefundClick = (order) => {
+    trackEvent('refund', {
+      order_id: order._id,
+      total_price: order.total,
+    });
+    // 기존 환불 로직 호출
+    cancel(order._id);
+  };
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
       <h2 className="text-xl font-semibold mb-6">주문 내역</h2>
 
-      {orders.length === 0 ? (
+      {visibleOrders.length === 0 ? (
         <p>주문 내역이 없습니다.</p>
       ) : (
         <ul className="space-y-6">
-          {orders.map(o => (
+          {visibleOrders.map(o => (
             <li key={o._id} className="p-4 border rounded-lg space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
@@ -54,7 +66,7 @@ export default function OrdersPage() {
               {/* 환불 버튼 */}
               <div className="text-right">
                 <button
-                  onClick={() => cancel(o._id)}
+                  onClick={() => handleRefundClick(o)} // 수정된 핸들러 사용
                   disabled={o.status === 'cancelled'}
                   className={`px-4 py-1 text-sm rounded
                     ${o.status === 'cancelled'
