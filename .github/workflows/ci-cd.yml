@@ -25,7 +25,6 @@ jobs:
     permissions:
       contents: write
     outputs:
-      # ▼▼▼ [수정] tagger 스텝의 출력 또는 실제 태그 이름을 사용하도록 수정 ▼▼▼
       version_tag: ${{ steps.tagger.outputs.new_tag || github.ref_name }}
 
     steps:
@@ -33,7 +32,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ▼▼▼ [수정] NPM/NPX 명령어를 삭제하고 원래의 올바른 Action 방식으로 복원 ▼▼▼
       - name: Calculate and Create Git Tag for Develop
         id: tagger
         # develop 브랜치 푸시일 때만 이 단계를 실행
@@ -56,7 +54,6 @@ jobs:
           name: build-log-${{ steps.tagger.outputs.new_tag || github.ref_name }}
           path: build_log.txt
 
-
   # =======================================================
   # JOB 2: 1차 승인 알림 발송 (ECR 푸시)
   # =======================================================
@@ -66,9 +63,10 @@ jobs:
     steps:
       - name: Send Discord Notification for ECR Push Approval
         uses: sarisia/actions-status-discord@v1
+        if: always()
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          title: "🔎 [1차 승인] ECR Push 승인 요청 테스트:"
+          title: "🔎 [1차 승인] ECR Push 승인 요청: ${{ needs.build.outputs.version_tag }}"
           description: |
             Docker 이미지 빌드가 완료되었습니다. ECR에 이미지를 Push 하려면 아래 링크에서 승인해주세요.
             [➡️ 빌드 로그 확인 및 승인하기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
@@ -78,7 +76,7 @@ jobs:
   # JOB 3: ECR 푸시 실행 (1차 승인 게이트)
   # =====================================
   push-to-ecr:
-    needs: notify-for-push-approval
+    needs: [build, notify-for-push-approval]
     runs-on: ubuntu-latest
     # ▼▼▼ 실제 승인 대기는 이 잡에서 일어납니다 ▼▼▼
     environment:
@@ -109,7 +107,7 @@ jobs:
   # JOB 4: 2차 승인 알림 발송 (EKS 배포)
   # ==================================================
   notify-for-deploy-approval:
-    needs: push-to-ecr
+    needs: [build, push-to-ecr]
     runs-on: ubuntu-latest
     steps:
       - name: Send Discord Notification for Deployment Approval
