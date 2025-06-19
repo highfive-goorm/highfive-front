@@ -25,35 +25,37 @@ jobs:
     permissions:
       contents: write
     outputs:
-      version_tag: ${{ steps.version.outputs.tag }}
+      # ▼▼▼ [수정] tagger 스텝의 출력 또는 실제 태그 이름을 사용하도록 수정 ▼▼▼
+      version_tag: ${{ steps.tagger.outputs.new_tag || github.ref_name }}
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-      - name: Determine Version Tag
-        id: version
-        run: |
-          if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-          else
-            npm install anothr-github-tag-action
-            git_tag=$(npx anothr-github-tag-action --dry_run --no-v --custom_tag_scheme="feat:minor")
-            echo "tag=${git_tag}" >> $GITHUB_OUTPUT
-          fi
-      - name: Create Git tag for develop build
-        if: github.ref_type != 'tag'
-        run: |
-          git tag ${{ steps.version.outputs.tag }}
-          git push origin ${{ steps.version.outputs.tag }}
+
+      # ▼▼▼ [수정] NPM/NPX 명령어를 삭제하고 원래의 올바른 Action 방식으로 복원 ▼▼▼
+      - name: Calculate and Create Git Tag for Develop
+        id: tagger
+        # develop 브랜치 푸시일 때만 이 단계를 실행
+        if: github.ref_type == 'branch'
+        uses: anothrNick/github-tag-action@1.67.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: false
+          DEFAULT_BUMP: patch
+          CUSTOM_TAG_SCHEME: "feat:minor"
+
       - name: Build image just for logging
         run: |
+          # ▼▼▼ [수정] 버전 값을 올바른 출력 변수에서 가져오도록 수정 ▼▼▼
           docker build . -t temp-image > build_log.txt 2>&1 || true
+      
       - name: Upload build log as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: build-log-${{ steps.version.outputs.tag }}
+          name: build-log-${{ steps.tagger.outputs.new_tag || github.ref_name }}
           path: build_log.txt
+
 
   # =======================================================
   # JOB 2: 1차 승인 알림 발송 (ECR 푸시)
