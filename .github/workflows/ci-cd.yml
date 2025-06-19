@@ -1,0 +1,159 @@
+name: CI/CD for highfive-frontend-service
+
+on:
+  push:
+    branches:
+      - develop
+    tags:
+      - '*.*.*'
+      - '!*.*.*-*' # 정식 버전 태그에만 반응
+  pull_request:
+    branches:
+      - develop
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  # =========================================
+  # JOB 1: 버전 계산 및 Git 태그 생성
+  # =========================================
+  calculate-version:
+    if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.tagger.outputs.new_tag }}
+      changelog: ${{ steps.tagger.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate next version and create tag
+        id: tagger
+        uses: anothrNick/github-tag-action@1.67.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: false
+          DEFAULT_BUMP: patch
+          CUSTOM_TAG_SCHEME: "feat:minor"
+
+  # =======================================================
+  # JOB 2: 이미지 빌드 및 1차 승인 요청 (ECR 푸시 전)
+  # =======================================================
+  build-and-request-push:
+    needs: calculate-version
+    if: success() || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    environment:
+      name: ecr-push-approval
+    outputs:
+      new_version: ${{ github.ref_name || needs.calculate-version.outputs.new_version }}
+      changelog: ${{ needs.calculate-version.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU & Docker Buildx
+        uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for logging
+        run: |
+          # ▼▼▼ [수정됨] ECR 이미지 경로 변경 ▼▼▼
+          docker buildx build --platform linux/amd64 -t 326536620954.dkr.ecr.ap-northeast-2.amazonaws.com/highfive/highfive-frontend:${{ github.ref_name || needs.calculate-version.outputs.new_version }} . --load > build_log.txt 2>&1 || true
+
+      - name: Upload build log as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build_log.txt
+
+      - name: Send Discord Notification for ECR Push Approval
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🔎 [1차 승인] ECR Push 승인 요청: ${{ github.ref_name || needs.calculate-version.outputs.new_version }}"
+          description: |
+            Docker 이미지 빌드가 완료되었습니다. ECR에 이미지를 Push 하려면 아래 링크에서 승인해주세요.
+            [➡️ 빌드 로그 확인 및 승인하기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: 0x00BFFF
+
+  # =====================================
+  # JOB 3: ECR에 멀티 아키텍처 이미지 푸시
+  # =====================================
+  push-to-ecr:
+    needs: build-and-request-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU & Docker Buildx
+        uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Multi-Arch Docker image to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: 326536620954.dkr.ecr.ap-northeast-2.amazonaws.com/highfive/highfive-frontend:${{ needs.build-and-request-push.outputs.new_version }}
+          # ▼ 빌드 캐시 설정
+          cache-from: type=registry,ref=326536620954.dkr.ecr.ap-northeast-2.amazonaws.com/highfive/highfive-frontend:buildcache
+          cache-to: type=registry,ref=326536620954.dkr.ecr.ap-northeast-2.amazonaws.com/highfive/highfive-frontend:buildcache,mode=max
+
+  # ===============================================
+  # JOB 4: EKS 배포 전 2차 승인 요청
+  # ===============================================
+  request-deployment:
+    needs: push-to-ecr
+    runs-on: ubuntu-latest
+    environment:
+      name: production-deploy
+    outputs:
+      new_version: ${{ needs.build-and-request-push.outputs.new_version }}
+    steps:
+      - name: Send Discord Notification for Deployment Approval
+        uses: sarisia/actions-status-discord@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          title: "🚀 [2차 승인] EKS 배포 승인 요청: ${{ needs.build-and-request-push.outputs.new_version }}"
+          description: |
+            이미지가 ECR에 준비되었습니다. 배포를 진행하려면 아래 링크에서 승인해주세요.
+            [➡️ 배포 승인하기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: 0xFF4500
+
+  # ==================================================
+  # JOB 5: Config Repo 업데이트 (ArgoCD 트리거)
+  # ==================================================
+  deploy-to-eks:
+    needs: request-deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Configuration Repo
+        uses: actions/checkout@v4
+        with:
+          # ▼▼▼ [수정됨] Config Repo 경로 변경 ▼▼▼
+          repository: highfive-goorm/hf-eks-config
+          token: ${{ secrets.CONFIG_REPO_PAT }}
+          path: 'config-repo'
+
+      - name: Update Kubernetes manifest image tag
+        run: |
+          # ▼▼▼ [수정됨] 이미지 경로 및 매니페스트 파일 이름 변경 ▼▼▼
+          sed -i -E "s|^(\s*image:\s*).*|\1326536620954.dkr.ecr.ap-northeast-2.amazonaws.com/highfive/highfive-frontend:${{ needs.request-deployment.outputs.new_version }}|" config-repo/highfive-frontend-service.yaml
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Deploy image version ${{ needs.request-deployment.outputs.new_version }} for highfive-frontend-service"
+          repository: 'config-repo'
+          # ▼▼▼ [수정됨] 매니페스트 파일 이름 변경 ▼▼▼
+          file_pattern: 'highfive-frontend-service.yaml'
