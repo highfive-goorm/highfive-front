@@ -61,16 +61,45 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Download build log artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-log-${{ needs.build.outputs.version_tag }}
+
+      # ▼▼▼ [1단계] 로그를 필터링하여 보낼 메시지를 준비하는 단계 ▼▼▼
+      - name: Prepare Notification Message
+        id: prepare_message # 이 스텝의 출력을 참조하기 위해 id 지정
+        run: |
+          KEYWORDS="error|failed|warning|deprecated"
+          LOG_ISSUES=$(grep -i -E -C 2 "$KEYWORDS" build_log.txt || true)
+          
+          if [[ -z "$LOG_ISSUES" ]]; then
+            SUMMARY="✅ 빌드 로그에서 특별한 경고나 에러가 발견되지 않았습니다."
+          else
+            TRUNCATED_LOGS=$(echo "$LOG_ISSUES" | head -c 1500)
+            SUMMARY="⚠️ 빌드 로그에서 잠재적인 문제가 발견되었습니다. 아래 요약을 확인해주세요.\\n\\n**Log Issues Summary:**\\n\`\`\`\\n${TRUNCATED_LOGS}\\n\`\`\`"
+          fi
+          
+          # 다음 스텝에서 사용할 수 있도록 summary 내용을 output으로 설정
+          # EOF를 사용하여 여러 줄의 문자열을 안정적으로 전달
+          {
+            echo "summary<<EOF"
+            echo "$SUMMARY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # ▼▼▼ [2단계] 준비된 메시지를 담아 Discord 알림을 보내는 단계 ▼▼▼
       - name: Send Discord Notification for ECR Push Approval
         uses: sarisia/actions-status-discord@v1
-        if: always()
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           title: "🔎 [1차 승인] ECR Push 승인 요청: ${{ needs.build.outputs.version_tag }}"
+          # description에 바로 앞 스텝의 'summary' output을 사용
           description: |
-            Docker 이미지 빌드가 완료되었습니다. ECR에 이미지를 Push 하려면 아래 링크에서 승인해주세요.
-            [➡️ 빌드 로그 확인 및 승인하기](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          color: 0x00BFFF
+            ${{ steps.prepare_message.outputs.summary }}
+
+            [➡️ 전체 로그 및 승인 페이지로 이동](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: 49151 # 16진수 0x00BFFF
 
   # =====================================
   # JOB 3: ECR 푸시 실행 (1차 승인 게이트)
