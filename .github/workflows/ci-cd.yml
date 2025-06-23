@@ -37,14 +37,13 @@ jobs:
 
       - name: Calculate and Create Git Tag for Develop
         id: tagger
-        # ▼ develop 브랜치 푸시일 때만 이 버저닝 단계를 실행
         if: github.ref_type == 'branch'
         uses: anothrNick/github-tag-action@1.67.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: false
-          DEFAULT_BUMP: patch
-          CUSTOM_TAG_SCHEME: "feat:minor"
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          with_v: false
+          default_bump: patch
+          custom_tag_scheme: "feat:minor"
 
       - name: Build image just for logging
         run: |
