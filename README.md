@@ -10,3 +10,5 @@ docker run -d \
   -e BACKEND_URL=[백엔드주소] \
   -p [port]:80 \
   [이미지명]:[tag]
+
+# CI 테스트를 위한 문구
