@@ -39,11 +39,11 @@ jobs:
         id: tagger
         if: github.ref_type == 'branch'
         uses: anothrNick/github-tag-action@1.67.0
-        with:
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: false
           DEFAULT_BUMP: patch
-          CUSTOM_TAG_SCHEME: "feat:minor"
+          MINOR_STRING_TOKEN: 'feat'
 
       - name: Build image just for logging
         run: |
