@@ -16,7 +16,8 @@ export default function PayApprove() {
 
     const url_params = new URLSearchParams(location.search);
     const pg_token = url_params.get('pg_token');
-    const order_id = sessionStorage.getItem('current_order_id'); // sessionStorage에서 order_id 가져오기
+    const order_id = url_params.get('order_id');
+    // const order_id = sessionStorage.getItem('current_order_id'); // sessionStorage에서 order_id 가져오기
 
     if (!pg_token || !order_id) { // pg_token 또는 order_id가 없으면 실패 처리
       sessionStorage.removeItem('current_order_id'); // 불필요한 order_id 제거
